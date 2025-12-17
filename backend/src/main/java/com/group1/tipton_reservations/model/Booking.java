@@ -1,7 +1,9 @@
 package com.group1.tipton_reservations.model;
 
+import com.group1.tipton_reservations.model.enums.BookingStatus;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,6 +22,9 @@ import java.time.LocalDateTime;
 public class Booking {
     @Id
     private String id;
+    
+    @Indexed(unique = true)
+    private String confirmationNumber;
 
     private String userId;
     
@@ -34,7 +39,9 @@ public class Booking {
     
     private String paymentId;
     
-    private String status; 
+    private BookingStatus status; 
+
+    private Integer numberOfGuests;
     
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt;
