@@ -7,7 +7,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 
 /**
- * Stores the extended business profile for a registered {@link User}.
+ * Stores the extended business profile for a registered User.
  */
 @Data
 @Document(collection = "user_profiles")
