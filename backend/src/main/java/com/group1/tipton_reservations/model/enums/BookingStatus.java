@@ -11,5 +11,8 @@ public enum BookingStatus {
     CONFIRMED,
 
     // Booking has been cancelled by the guest or admin.
-    CANCELLED
+    CANCELLED,
+
+    // Booking has been completed.
+    COMPLETED
 }
