@@ -2,7 +2,9 @@ package com.group1.tipton_reservations.model;
 
 import com.group1.tipton_reservations.model.enums.BookingStatus;
 import lombok.Data;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 import java.math.BigDecimal;
@@ -42,7 +44,10 @@ public class Booking {
     private BookingStatus status; 
 
     private Integer numberOfGuests;
-    
-    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
     private LocalDateTime updatedAt;
 }
