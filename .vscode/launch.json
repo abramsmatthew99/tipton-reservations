@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot-TiptonReservationsApplication<tipton-reservations>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.group1.tipton_reservations.TiptonReservationsApplication",
+      "projectName": "tipton-reservations",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}

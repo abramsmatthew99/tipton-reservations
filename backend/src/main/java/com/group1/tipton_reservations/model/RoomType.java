@@ -30,8 +30,8 @@ public class RoomType {
     
     private Integer maxOccupancy;
     
-    private List<String> imageUrls;
-
+    private List<String> imageUrls; //TODO: We might consider storing images in s3 buckets
+                                    //Then, we can have these imageUrls be the urls of the s3 buckets
     private List<Amenity> amenities;
     
     private boolean active = true;

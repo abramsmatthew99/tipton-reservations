@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: tipton-reservations
+  data:
+    mongodb:
+      uri:
+  output:
+    ansi:
+      enabled: always
+
+logging:
+  level:
+    org.springframework.security: DEBUG
