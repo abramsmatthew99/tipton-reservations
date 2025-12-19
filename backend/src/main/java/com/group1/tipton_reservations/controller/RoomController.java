@@ -12,21 +12,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.group1.tipton_reservations.model.Room;
-import com.group1.tipton_reservations.repository.RoomRepository;
 import com.group1.tipton_reservations.service.RoomService;
 
 @RestController
 @RequestMapping("/rooms") 
 @CrossOrigin("http://localhost:5173/")
 public class RoomController {
-    private final RoomRepository roomRepository; 
     private final RoomService roomService; 
 
 
 
-    private RoomController (RoomService roomService, RoomRepository roomRepository) {
+    private RoomController (RoomService roomService) {
         this.roomService = roomService; 
-        this.roomRepository = roomRepository; 
     }
 
     @GetMapping 
