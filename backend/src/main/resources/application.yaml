@@ -3,7 +3,7 @@ spring:
     name: tipton-reservations
   data:
     mongodb:
-      uri:
+      uri: mongodb+srv://administrator:YbHidL31.5.1@tiptonreservations.hqk4yh5.mongodb.net/tipton?appName=TiptonReservations
   output:
     ansi:
       enabled: always
