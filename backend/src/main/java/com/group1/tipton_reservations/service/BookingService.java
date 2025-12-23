@@ -45,57 +45,62 @@ public class BookingService {
         // validate date range
         validateDateRange(request.getCheckInDate(), request.getCheckOutDate());
 
+
+        // TODO: comment out user and room type validation for testing; update later
+
         // validate user exists and is active
-        User user = userService.findUserById(userId);
-        if (!user.isActive()) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "User account is not active"
-            );
-        }
+        // User user = userService.findUserById(userId);
+        // if (!user.isActive()) {
+        //     throw new ResponseStatusException(
+        //             HttpStatus.FORBIDDEN,
+        //             "User account is not active"
+        //     );
+        // }
+
 
         // validate room type exists and is active
-        RoomType roomType = roomTypeService.findRoomTypeById(request.getRoomTypeId());
-        if (!roomType.isActive()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Room type is not available"
-            );
-        }
+        // RoomType roomType = roomTypeService.findRoomTypeById(request.getRoomTypeId());
+        // if (!roomType.isActive()) {
+        //     throw new ResponseStatusException(
+        //             HttpStatus.BAD_REQUEST,
+        //             "Room type is not available"
+        //     );
+        // }
 
         // validate number of guests is not greater than room capacity
-        if (request.getNumberOfGuests() > roomType.getMaxOccupancy()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    String.format("Number of guests (%d) exceeds maximum occupancy (%d) for this room type",
-                            request.getNumberOfGuests(), roomType.getMaxOccupancy())
-            );
-        }
+        // if (request.getNumberOfGuests() > roomType.getMaxOccupancy()) {
+        //     throw new ResponseStatusException(
+        //             HttpStatus.BAD_REQUEST,
+        //             String.format("Number of guests (%d) exceeds maximum occupancy (%d) for this room type",
+        //                     request.getNumberOfGuests(), roomType.getMaxOccupancy())
+        //     );
+        // }
 
         // find and assign an available room of this type
-        Room assignedRoom = roomService.findAvailableRoom(
-                request.getRoomTypeId(),
-                request.getCheckInDate(),
-                request.getCheckOutDate()
-        );
+        // Room assignedRoom = roomService.findAvailableRoom(
+        //         request.getRoomTypeId(),
+        //         request.getCheckInDate(),
+        //         request.getCheckOutDate()
+        // );
 
-        BigDecimal totalPrice = calculateTotalPrice(
-                roomType.getBasePrice(),
-                request.getCheckInDate(),
-                request.getCheckOutDate()
-        );
+        // BigDecimal totalPrice = calculateTotalPrice(
+        //         roomType.getBasePrice(),
+        //         request.getCheckInDate(),
+        //         request.getCheckOutDate()
+        // );
 
         // create booking entity
         Booking booking = new Booking();
         booking.setUserId(userId);
         booking.setRoomTypeId(request.getRoomTypeId());
-        booking.setRoomId(assignedRoom.getId());
+        // booking.setRoomId(assignedRoom.getId());
+        booking.setRoomId("test-room-id");    // hardcode room ID for now; change later
         booking.setCheckInDate(request.getCheckInDate());
         booking.setCheckOutDate(request.getCheckOutDate());
         booking.setNumberOfGuests(request.getNumberOfGuests());
         booking.setStatus(BookingStatus.CONFIRMED);     // change to "PENDING" once payment logic is implemented
         booking.setConfirmationNumber(generateConfirmationNumber());
-        booking.setTotalPrice(totalPrice);
+        booking.setTotalPrice(BigDecimal.valueOf(500));     // hardcode price for now; need existing room type documents
 
         // save booking
         Booking savedBooking = bookingRepository.save(booking);

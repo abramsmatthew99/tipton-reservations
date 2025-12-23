@@ -95,6 +95,7 @@ public class BookingController {
 
     /**
      * Cancels a booking.
+     * TODO: Currently changes the booking status to CANCELLED; consider deleting the entire booking (in service layer)
      *
      * @param id the booking ID
      * @return the cancelled booking response
