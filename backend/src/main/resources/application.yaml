@@ -2,7 +2,7 @@ spring:
   application:
     name: tipton-reservations
   data:
-    mongodb:
+    mongodb: #URI Exposed publicly, does not matter now. hide in env when moving to AWS
       uri: mongodb+srv://administrator:YbHidL31.5.1@tiptonreservations.hqk4yh5.mongodb.net/tipton?appName=TiptonReservations
   output:
     ansi:
