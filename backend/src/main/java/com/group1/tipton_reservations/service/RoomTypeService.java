@@ -1,13 +1,11 @@
 package com.group1.tipton_reservations.service;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.springframework.stereotype.Service;
 
-import com.group1.tipton_reservations.model.Room;
 import com.group1.tipton_reservations.model.RoomType;
-import com.group1.tipton_reservations.model.RoomType.Amenity;
 import com.group1.tipton_reservations.repository.RoomTypeRepository;
 
 @Service
@@ -26,29 +24,67 @@ public class RoomTypeService {
         return roomTypeRepository.findAll(); 
     }
 
-    //Edit room entry
-    public void updateRoomType(String id, String name, String description, BigDecimal basePrice, Integer maxOccupancy, List<String> imageUrls, List<Amenity> amenities) { 
-         RoomType rt = roomTypeRepository.findById(id)
-        .orElseThrow(() -> new RuntimeException("RoomType not found"));
+    public RoomType updateRoomType(String id, RoomType roomType) { 
+        validateRoomType(roomType);
+        RoomType existing = roomTypeRepository.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("RoomType not found"));
 
-        rt.setName(name);
-        rt.setDescription(description);
-        rt.setBasePrice(basePrice);
-        rt.setMaxOccupancy(maxOccupancy);
-        rt.setImageUrls(imageUrls);
-        rt.setAmenities(amenities);
+        String normalizedName = normalizeName(roomType.getName());
+        if (!normalizedName.equals(existing.getName()) && roomTypeRepository.existsByName(normalizedName)) {
+            throw new IllegalStateException("RoomType name already exists");
+        }
 
-        roomTypeRepository.save(rt);
+        existing.setName(normalizedName);
+        existing.setDescription(roomType.getDescription());
+        existing.setBasePrice(roomType.getBasePrice());
+        existing.setMaxOccupancy(roomType.getMaxOccupancy());
+        existing.setImageUrls(roomType.getImageUrls());
+        existing.setAmenityIds(roomType.getAmenityIds());
+
+        return roomTypeRepository.save(existing);
     }
     public RoomType findRoomTypeById(String id) {
-        return roomTypeRepository.findById(id).orElseThrow(() -> new RuntimeException("Room not found")); 
+        return roomTypeRepository.findById(id)
+            .orElseThrow(() -> new NoSuchElementException("RoomType not found"));
     }
     
     public RoomType createRoomType(RoomType roomType) {
+        validateRoomType(roomType);
+        String normalizedName = normalizeName(roomType.getName());
+        if (roomTypeRepository.existsByName(normalizedName)) {
+            throw new IllegalStateException("RoomType name already exists");
+        }
+        roomType.setName(normalizedName);
         return roomTypeRepository.save(roomType); 
     }
 
     public void deleteRoomType(String id) {
         roomTypeRepository.deleteById(id); 
+    }
+
+    private void validateRoomType(RoomType roomType) {
+        if (roomType == null) {
+            throw new IllegalArgumentException("RoomType payload is required");
+        }
+        String name = normalizeName(roomType.getName());
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("RoomType name is required");
+        }
+        if (roomType.getBasePrice() == null) {
+            throw new IllegalArgumentException("RoomType basePrice is required");
+        }
+        if (roomType.getBasePrice().signum() <= 0) {
+            throw new IllegalArgumentException("RoomType basePrice must be greater than 0");
+        }
+        if (roomType.getMaxOccupancy() == null) {
+            throw new IllegalArgumentException("RoomType maxOccupancy is required");
+        }
+        if (roomType.getMaxOccupancy() <= 0) {
+            throw new IllegalArgumentException("RoomType maxOccupancy must be greater than 0");
+        }
+    }
+
+    private String normalizeName(String name) {
+        return name == null ? "" : name.trim();
     }
 }
