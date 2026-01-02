@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
 import "./App.css";
 import RoomTypeForm from "./components/RoomTypeForm";
 import RoomCreateForm from "./components/RoomCreateForm";
 import { createRoomType, getRoomTypes } from "./apis/roomtype";
 import { createRoom } from "./apis/room";
-import { useEffect } from "react";
 import { getAmenities } from "./apis/amenities";
 
 function App() {
@@ -79,47 +79,66 @@ function App() {
   useEffect(() => {
     if (roomTypes.length === 0) return;
     setCreateRoomForm((prev) =>
-      prev.roomTypeId
-        ? prev
-        : { ...prev, roomTypeId: String(roomTypes[0].id) }
+      prev.roomTypeId ? prev : { ...prev, roomTypeId: String(roomTypes[0].id) }
     );
   }, [roomTypes]);
 
   return (
-    <div className="app">
-      <header>
-        <h1>Room Type Forms</h1>
-        <p>Basic forms for the RoomType model (dummy data only).</p>
-      </header>
+    <Routes>
+      {/* Landing page - placeholder for now */}
+      <Route
+        path='/'
+        element={
+          <div className='app'>
+            <header>
+              <h1>Tipton Hotel Reservations</h1>
+              <p>Landing page...</p>
+            </header>
+          </div>
+        }
+      />
 
-      <div className="forms">
-        <RoomTypeForm
-          title="Create Room Type"
-          submitLabel="Save"
-          formIdPrefix="create"
-          formState={createForm}
-          setFormState={setCreateForm}
-          dropdownData={dropdownData}
-          amenitiesOptions={amenities}
-          onSubmit={() => handleSubmit("create")}
-        />
-        <RoomTypeForm
-          title="Edit Room Type"
-          submitLabel="Update"
-          formIdPrefix="edit"
-          formState={editForm}
-          setFormState={setEditForm}
-          dropdownData={dropdownData}
-          onSubmit={() => handleSubmit("edit")}
-        />
-        <RoomCreateForm
-          formState={createRoomForm}
-          setFormState={setCreateRoomForm}
-          roomTypes={roomTypes}
-          onSubmit={handleCreateRoom}
-        />
-      </div>
-    </div>
+      {/* Admin route for existing room management forms */}
+      <Route
+        path='/admin'
+        element={
+          <div className='app'>
+            <header>
+              <h1>Room Type Forms</h1>
+              <p>Basic forms for the RoomType model (dummy data only).</p>
+            </header>
+
+            <div className='forms'>
+              <RoomTypeForm
+                title='Create Room Type'
+                submitLabel='Save'
+                formIdPrefix='create'
+                formState={createForm}
+                setFormState={setCreateForm}
+                dropdownData={dropdownData}
+                amenitiesOptions={amenities}
+                onSubmit={() => handleSubmit("create")}
+              />
+              <RoomTypeForm
+                title='Edit Room Type'
+                submitLabel='Update'
+                formIdPrefix='edit'
+                formState={editForm}
+                setFormState={setEditForm}
+                dropdownData={dropdownData}
+                onSubmit={() => handleSubmit("edit")}
+              />
+              <RoomCreateForm
+                formState={createRoomForm}
+                setFormState={setCreateRoomForm}
+                roomTypes={roomTypes}
+                onSubmit={handleCreateRoom}
+              />
+            </div>
+          </div>
+        }
+      />
+    </Routes>
   );
 }
 
