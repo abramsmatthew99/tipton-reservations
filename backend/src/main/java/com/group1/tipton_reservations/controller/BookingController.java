@@ -111,4 +111,5 @@ public class BookingController {
 
     // TODO: Future endpoints to implement:
     // - POST /bookings/{id}/confirm - confirm booking after payment (will originally be set to pending upon creation)
+    // - GET /bookings - get all bookings for admin (with pagination and sorting)
 }
