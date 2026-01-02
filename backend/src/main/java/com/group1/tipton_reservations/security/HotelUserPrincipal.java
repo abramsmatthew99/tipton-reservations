@@ -1,4 +1,4 @@
-package com.group1.tipton_reservations.wrappers;
+package com.group1.tipton_reservations.security;
 
 import com.group1.tipton_reservations.model.User;
 import org.springframework.security.core.GrantedAuthority;
