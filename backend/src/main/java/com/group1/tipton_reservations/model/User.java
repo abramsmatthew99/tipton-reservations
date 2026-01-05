@@ -5,6 +5,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import jakarta.annotation.Generated;
 import jakarta.validation.constraints.Email;
 
 import java.time.LocalDateTime;
@@ -15,6 +16,12 @@ import java.util.Set;
 @Data
 @Document(collection = "users")
 public class User {
+
+    public User(String username, String password) {
+        this.email = username;
+        this.password = password;
+        this.roles.add("USER");
+    }
 
     @Id
     private String id;

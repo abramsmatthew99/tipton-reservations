@@ -11,3 +11,11 @@ spring:
 logging:
   level:
     org.springframework.security: DEBUG
+
+tipton:
+  app:
+    jwtSecret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    jwtExpirationMs: 86400000 # 24 hours in milliseconds
+
+server:
+  port: 8080
