@@ -10,6 +10,7 @@ import jakarta.validation.constraints.Email;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -17,10 +18,10 @@ import java.util.Set;
 @Document(collection = "users")
 public class User {
 
-    public User(String username, String password) {
-        this.email = username;
+    public User(String email, String password) {
+        this.email = email;
         this.password = password;
-        this.roles.add("USER");
+        this.roles.add("ROLE_CUSTOMER");
     }
 
     @Id
@@ -37,7 +38,7 @@ public class User {
     private List<ConnectedAccount> connectedAccounts = new ArrayList<>();
 
    
-    private Set<String> roles;
+    private Set<String> roles = new HashSet<>();
 
     private boolean isActive = true;
 

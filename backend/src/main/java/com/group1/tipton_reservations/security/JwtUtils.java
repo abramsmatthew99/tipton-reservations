@@ -19,7 +19,6 @@ public class JwtUtils {
     @Value("${tipton.app.jwtExpirationMs}")
     private int jwtExpirationMs;
 
-    // 1. GENERATE TOKEN
     public String generateJwtToken(Authentication authentication) {
         HotelUserPrincipal userPrincipal = (HotelUserPrincipal) authentication.getPrincipal();
 
@@ -36,7 +35,6 @@ public class JwtUtils {
                .parseClaimsJws(token).getBody().getSubject();
     }
 
-    // 3. VALIDATE TOKEN
     public boolean validateJwtToken(String authToken) {
         try {
             Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
@@ -57,3 +55,5 @@ public class JwtUtils {
     private Key key() {
         return Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtSecret));
     }
+
+}
