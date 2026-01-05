@@ -45,6 +45,11 @@ public class SecurityConfig {
             );
         return http.build();
     }
+<<<<<<< HEAD
  
 
 }
+=======
+}
+
+>>>>>>> 2e870094dbab825e17c55f6458fbe12eb8d719bb

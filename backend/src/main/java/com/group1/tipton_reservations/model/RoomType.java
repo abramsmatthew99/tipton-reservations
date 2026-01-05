@@ -32,14 +32,5 @@ public class RoomType {
     
     private List<String> imageUrls; //TODO: We might consider storing images in s3 buckets
                                     //Then, we can have these imageUrls be the urls of the s3 buckets
-    private List<Amenity> amenities;
-    
-    private boolean active = true;
-
-    @Data
-    public static class Amenity {
-        private String name;
-        private String iconCode;
-        private String description;
-    }
+    private List<String> amenityIds;
 }

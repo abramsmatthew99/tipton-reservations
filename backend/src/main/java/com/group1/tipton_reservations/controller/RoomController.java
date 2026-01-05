@@ -5,8 +5,11 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,9 +44,68 @@ public class RoomController {
             Room newRoom = roomService.createRoom(room); 
 
             return new ResponseEntity<>(newRoom, HttpStatus.OK);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                .header("message", e.getMessage())
+                .build();
         } catch (Exception e) {
-            // TODO: handle exception
             return ResponseEntity.internalServerError().header("message", "something went wrong when creating a room entry ").build();
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Room> findRoomById(@PathVariable String id) {
+        try {
+            Room room = roomService.findRoomById(id);
+            return new ResponseEntity<>(room, HttpStatus.OK);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .header("Message", "room not found")
+                .build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .header("Message", "error fetching room")
+                .build();
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Room> updateRoom(@PathVariable String id, @RequestBody Room room) {
+        try {
+            roomService.updateRoom(
+                id,
+                room.getRoomTypeId(),
+                room.getRoomNumber(),
+                room.getFloor(),
+                room.getStatus()
+            );
+            Room updatedRoom = roomService.findRoomById(id);
+            return new ResponseEntity<>(updatedRoom, HttpStatus.OK);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .header("Message", "room not found")
+                .build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .header("Message", "error updating room")
+                .build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteRoom(@PathVariable String id) {
+        try {
+            roomService.findRoomById(id);
+            roomService.deleteRoom(id);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .header("Message", "room not found")
+                .build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .header("Message", "error deleting room")
+                .build();
         }
     }
 }
