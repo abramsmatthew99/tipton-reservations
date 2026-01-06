@@ -13,3 +13,9 @@ export const createRoom = async (formData) => {
 
   return data;
 };
+
+export const getRooms = async () => {
+  const { data } = await axios.get(`${baseURL}/rooms`);
+
+  return data;
+};

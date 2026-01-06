@@ -1,6 +1,7 @@
 package com.group1.tipton_reservations.model;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -14,6 +15,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
  * </p>
  */
 @Data 
+@NoArgsConstructor
 @Document(collection = "rooms")
 @CompoundIndex(name = "room_floor_idx", def = "{'roomNumber': 1, 'floor': 1}", unique = true)
 public class Room {
@@ -29,7 +31,7 @@ public class Room {
 
 
 
-    public Room(String roomTypeId, String roomNumber, Integer floor, String status, Integer capacity) {
+    public Room(String roomTypeId, String roomNumber, Integer floor, String status) {
         this.roomTypeId = roomTypeId;
         this.roomNumber = roomNumber;
         this.floor = floor;
