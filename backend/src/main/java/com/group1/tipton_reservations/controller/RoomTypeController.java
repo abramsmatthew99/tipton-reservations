@@ -1,7 +1,9 @@
 package com.group1.tipton_reservations.controller;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -12,8 +14,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.group1.tipton_reservations.dto.roomType.RoomTypeAvailabilityResponse;
 import com.group1.tipton_reservations.model.RoomType;
 import com.group1.tipton_reservations.service.RoomTypeService;
 
@@ -52,6 +56,22 @@ public class RoomTypeController {
             return ResponseEntity.internalServerError()
                 .header("Message", "error fetching room type")
                 .build();
+        }
+    }
+
+    @GetMapping("/available")
+    public ResponseEntity<List<RoomTypeAvailabilityResponse>> findAvailableRoomTypes(
+            @RequestParam("checkInDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDate,
+            @RequestParam("checkOutDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDate) {
+        try {
+            List<RoomTypeAvailabilityResponse> availableRoomTypes = roomTypeService.findAvailableRoomTypes(checkInDate, checkOutDate);
+            return new ResponseEntity<>(availableRoomTypes, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .header("Message", e.getMessage()).build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                .header("Message", "error fetching available room types").build();
         }
     }
 
