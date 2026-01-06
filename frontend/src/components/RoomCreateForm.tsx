@@ -1,21 +1,21 @@
 type RoomCreateFormState = {
-  roomTypeId: string
-  roomNumber: string
-  floor: string
-  status: string
-}
+  roomTypeId: string;
+  roomNumber: string;
+  floor: string;
+  status: string;
+};
 
 type RoomTypeOption = {
-  id: string | number
-  name: string
-}
+  id: string | number;
+  name: string;
+};
 
 type RoomCreateFormProps = {
-  formState: RoomCreateFormState
-  setFormState: (nextState: RoomCreateFormState) => void
-  roomTypes: RoomTypeOption[]
-  onSubmit: () => void
-}
+  formState: RoomCreateFormState;
+  setFormState: (nextState: RoomCreateFormState) => void;
+  roomTypes: RoomTypeOption[];
+  onSubmit: () => void;
+};
 
 function RoomCreateForm({
   formState,
@@ -26,8 +26,8 @@ function RoomCreateForm({
   return (
     <form
       onSubmit={(event) => {
-        event.preventDefault()
-        onSubmit()
+        event.preventDefault();
+        onSubmit();
       }}
     >
       <h2>Create Room</h2>
@@ -40,7 +40,9 @@ function RoomCreateForm({
           setFormState({ ...formState, roomTypeId: event.target.value })
         }
       >
-        {roomTypes.length === 0 && <option value="">No room types found</option>}
+        {roomTypes.length === 0 && (
+          <option value="">No room types found</option>
+        )}
         {roomTypes.map((roomType) => (
           <option key={roomType.id} value={String(roomType.id)}>
             {roomType.name}
@@ -79,15 +81,16 @@ function RoomCreateForm({
               setFormState({ ...formState, status: event.target.value })
             }
           >
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="AVAILABLE">AVAILABLE</option>
+            <option value="OCCUPIED">OCCUPIED</option>
+            <option value="MAINTENANCE">MAINTENANCE</option>
           </select>
         </div>
       </div>
 
       <button type="submit">Create Room</button>
     </form>
-  )
+  );
 }
 
-export default RoomCreateForm
+export default RoomCreateForm;

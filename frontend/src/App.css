@@ -6,6 +6,34 @@
   color: #1d1d1f;
 }
 
+.landing-nav {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 24px;
+  background: #f4f4f4;
+  border-bottom: 1px solid #e1e1e1;
+}
+
+.landing-nav__links {
+  display: inline-flex;
+  gap: 16px;
+}
+
+.landing-nav__link {
+  color: #1d1d1f;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid #1d1d1f;
+  background: #ffffff;
+}
+
+.landing-nav__link:hover {
+  background: #1d1d1f;
+  color: #ffffff;
+}
+
 header {
   margin-bottom: 20px;
 }

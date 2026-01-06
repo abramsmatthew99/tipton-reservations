@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -35,47 +36,40 @@ public class BookingService {
 
     /**
      * Creates a new booking.
+     * Uses @Transactional to prevent race conditions and ensure atomicity.
      *
      * @param request the booking creation request
      * @param userId the authenticated user's ID
      * @return the created booking response
      * @throws ResponseStatusException if validation fails or room is unavailable
      */
+    @Transactional
     public BookingResponse createBooking(CreateBookingRequest request, String userId) {
         // validate date range
         validateDateRange(request.getCheckInDate(), request.getCheckOutDate());
 
-
-        // TODO: comment out user and room type validation for testing; update later
-
         // validate user exists and is active
-        // User user = userService.findUserById(userId);
-        // if (!user.isActive()) {
-        //     throw new ResponseStatusException(
-        //             HttpStatus.FORBIDDEN,
-        //             "User account is not active"
-        //     );
-        // }
+        User user = userService.findUserById(userId);
+        if (!user.isActive()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "User account is not active"
+            );
+        }
 
-
-        // validate room type exists and is active
-        // RoomType roomType = roomTypeService.findRoomTypeById(request.getRoomTypeId());
-        // if (!roomType.isActive()) {
-        //     throw new ResponseStatusException(
-        //             HttpStatus.BAD_REQUEST,
-        //             "Room type is not available"
-        //     );
-        // }
+        // validate room type exists
+        RoomType roomType = roomTypeService.findRoomTypeById(request.getRoomTypeId());
 
         // validate number of guests is not greater than room capacity
-        // if (request.getNumberOfGuests() > roomType.getMaxOccupancy()) {
-        //     throw new ResponseStatusException(
-        //             HttpStatus.BAD_REQUEST,
-        //             String.format("Number of guests (%d) exceeds maximum occupancy (%d) for this room type",
-        //                     request.getNumberOfGuests(), roomType.getMaxOccupancy())
-        //     );
-        // }
+        if (request.getNumberOfGuests() > roomType.getMaxOccupancy()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    String.format("Number of guests (%d) exceeds maximum occupancy (%d) for this room type",
+                            request.getNumberOfGuests(), roomType.getMaxOccupancy())
+            );
+        }
 
+        // TODO: Uncomment when room assignment logic is ready
         // find and assign an available room of this type
         // Room assignedRoom = roomService.findAvailableRoom(
         //         request.getRoomTypeId(),
@@ -83,26 +77,28 @@ public class BookingService {
         //         request.getCheckOutDate()
         // );
 
-        // BigDecimal totalPrice = calculateTotalPrice(
-        //         roomType.getBasePrice(),
-        //         request.getCheckInDate(),
-        //         request.getCheckOutDate()
-        // );
+        // calculate total price based on room type and number of nights
+        BigDecimal totalPrice = calculateTotalPrice(
+                roomType.getBasePrice(),
+                request.getCheckInDate(),
+                request.getCheckOutDate()
+        );
 
         // create booking entity
         Booking booking = new Booking();
         booking.setUserId(userId);
         booking.setRoomTypeId(request.getRoomTypeId());
+        // TODO: Replace hardcoded room ID when room assignment is implemented
         // booking.setRoomId(assignedRoom.getId());
-        booking.setRoomId("test-room-id");    // hardcode room ID for now; change later
+        booking.setRoomId("test-room-id");    // Temporary hardcode for testing
         booking.setCheckInDate(request.getCheckInDate());
         booking.setCheckOutDate(request.getCheckOutDate());
         booking.setNumberOfGuests(request.getNumberOfGuests());
-        booking.setStatus(BookingStatus.CONFIRMED);     // change to "PENDING" once payment logic is implemented
+        booking.setStatus(BookingStatus.CONFIRMED);     // TODO: Change to PENDING once payment logic is implemented
         booking.setConfirmationNumber(generateConfirmationNumber());
-        booking.setTotalPrice(BigDecimal.valueOf(500));     // hardcode price for now; need existing room type documents
+        booking.setTotalPrice(totalPrice);
 
-        // save booking
+        // save booking (within transaction - ensures atomicity)
         Booking savedBooking = bookingRepository.save(booking);
 
         return mapToResponse(savedBooking);
@@ -120,6 +116,24 @@ public class BookingService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Booking not found with ID: " + bookingId
+                ));
+
+        return mapToResponse(booking);
+    }
+
+    /**
+     * Retrieves a booking by its confirmation number.
+     * TODO: Add authorization check - verify booking belongs to authenticated user
+     *
+     * @param confirmationNumber the booking confirmation number
+     * @return the booking response
+     * @throws ResponseStatusException if booking not found
+     */
+    public BookingResponse getBookingByConfirmationNumber(String confirmationNumber) {
+        Booking booking = bookingRepository.findByConfirmationNumber(confirmationNumber)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Booking not found with confirmation number: " + confirmationNumber
                 ));
 
         return mapToResponse(booking);

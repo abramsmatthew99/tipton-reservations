@@ -56,6 +56,23 @@ public class BookingController {
     }
 
     /**
+     * Retrieves a booking by its confirmation number.
+     * TODO: Add authorization check - only allow user who owns booking or admin
+     *
+     * @param confirmationNumber the booking confirmation number
+     * @return the booking response
+     */
+    @GetMapping("/confirmation/{confirmationNumber}")
+    public ResponseEntity<BookingResponse> getBookingByConfirmationNumber(
+            @PathVariable String confirmationNumber) {
+        // TODO: When auth is implemented, verify booking.userId matches authenticated user
+        // String userId = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        BookingResponse response = bookingService.getBookingByConfirmationNumber(confirmationNumber);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
      * Retrieves all bookings for the current user with pagination.
      *
      * @param page the page number (default: 0)

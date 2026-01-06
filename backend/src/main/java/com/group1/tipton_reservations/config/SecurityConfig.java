@@ -51,8 +51,10 @@ public class SecurityConfig {
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler)) 
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**").permitAll() 
-                .anyRequest().authenticated() 
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/payments/**").permitAll() // TODO: Restrict to authenticated users
+                .requestMatchers("/bookings/**").permitAll() // TODO: Restrict to authenticated users
+                .anyRequest().authenticated()
             );
 
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
