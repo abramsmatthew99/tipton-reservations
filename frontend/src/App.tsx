@@ -6,6 +6,8 @@ import RoomCreateForm from "./components/RoomCreateForm";
 import { createRoomType, getRoomTypes } from "./apis/roomtype";
 import { createRoom } from "./apis/room";
 import { getAmenities } from "./apis/amenities";
+import BookingConfirmPage from "./pages/BookingConfirmPage";
+import BookingConfirmationPage from "./pages/BookingConfirmationPage";
 
 function App() {
   const dropdownData = {
@@ -97,6 +99,12 @@ function App() {
           </div>
         }
       />
+
+      {/* Booking Confirmation Page (Payment) */}
+      <Route path='/booking/confirm' element={<BookingConfirmPage />} />
+
+      {/* Booking Confirmation Success Page */}
+      <Route path='/booking/confirmation/:confirmationNumber' element={<BookingConfirmationPage />} />
 
       {/* Admin route for existing room management forms */}
       <Route
