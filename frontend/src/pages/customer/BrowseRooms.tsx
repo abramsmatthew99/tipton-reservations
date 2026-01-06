@@ -74,7 +74,7 @@ const BrowseRooms = () => {
                 name={roomType.name}
                 basePrice={roomType.basePrice ?? "0"}
                 maxOccupancy={roomType.maxOccupancy ?? 1}
-                imageUrls={roomType?.imageUrls?.[0] ?? undefined}
+                imageUrls={imageList[0] ?? undefined}
                 description={roomType.description ?? ""}
                 amenities={roomType?.amenities ?? []}
               />

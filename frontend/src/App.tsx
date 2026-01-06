@@ -24,11 +24,11 @@ function App() {
       <Routes>
         {/* Landing page - placeholder for now */}
         <Route
-          path='/'
+          path="/"
           element={
             <>
               <NavBar />
-              <div className='app'>
+              <div className="app">
                 <header>
                   <h1>Tipton Hotel Reservations</h1>
                   <p>Landing page...</p>
@@ -36,30 +36,27 @@ function App() {
               </div>
             </>
           }
-        />      
+        />
         {/* Admin route for existing room management forms */}
-        <Route
-          path='/admin'
-          element={<AdminPortal />}
-        >
+        <Route path="/admin" element={<AdminPortal />}>
           <Route index element={<AdminDashboard />} />
-          <Route path='rooms' element={<AdminRooms />} />
-          <Route path='room-types' element={<AdminRoomTypes />} />
-          <Route path='bookings' element={<AdminBookings />} />
+          <Route path="rooms" element={<AdminRooms />} />
+          <Route path="room-types" element={<AdminRoomTypes />} />
+          <Route path="bookings" element={<AdminBookings />} />
         </Route>
 
-        <Route
-          path='/customer'
-          element={<CustomerPortal />}
-        >
         {/* Booking Confirmation Page (Payment) */}
-        <Route path='/booking/confirm' element={<BookingConfirmPage />} />
+        <Route path="/booking/confirm" element={<BookingConfirmPage />} />
         {/* Booking Confirmation Success Page */}
-        <Route path='/booking/confirmation/:confirmationNumber' element={<BookingConfirmationPage />} />
+        <Route
+          path="/booking/confirmation/:confirmationNumber"
+          element={<BookingConfirmationPage />}
+        />
 
+        <Route path="/customer" element={<CustomerPortal />}>
           <Route index element={<BrowseRooms />} />
-          <Route path='bookings' element={<MyBookings />} />
-          <Route path='profile' element={<Profile />} />
+          <Route path="bookings" element={<MyBookings />} />
+          <Route path="profile" element={<Profile />} />
         </Route>
       </Routes>
     </>
