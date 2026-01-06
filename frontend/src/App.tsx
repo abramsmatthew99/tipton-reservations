@@ -5,8 +5,8 @@ import RoomCreateForm from "./components/RoomCreateForm";
 import { createRoomType, getRoomTypes } from "./apis/roomtype";
 import { createRoom } from "./apis/room";
 import { getAmenities } from "./apis/amenities";
-import BookingConfirmPage from "./pages/BookingConfirmPage";
-import BookingConfirmationPage from "./pages/BookingConfirmationPage";
+import BookingConfirmPage from "./pages/booking/BookingConfirmPage";
+import BookingConfirmationPage from "./pages/booking/BookingConfirmationPage";
 import NavBar from "./components/NavBar";
 import AdminPortal from "./layouts/AdminPortal";
 import CustomerPortal from "./layouts/CustomerPortal";
@@ -15,8 +15,9 @@ import AdminRooms from "./pages/admin/AdminRooms";
 import AdminBookings from "./pages/admin/AdminBookings";
 import AdminRoomTypes from "./pages/admin/AdminRoomTypes";
 import BrowseRooms from "./pages/customer/BrowseRooms";
-import MyBookings from "./pages/customer/MyBookings";
 import Profile from "./pages/customer/Profile";
+import BookingsPage from "./pages/customer/BookingsPage";
+import BookingDetailsPage from "./pages/booking/BookingDetailsPage";
 
 function App() {
   return (
@@ -24,11 +25,11 @@ function App() {
       <Routes>
         {/* Landing page - placeholder for now */}
         <Route
-          path="/"
+          path='/'
           element={
             <>
               <NavBar />
-              <div className="app">
+              <div className='app'>
                 <header>
                   <h1>Tipton Hotel Reservations</h1>
                   <p>Landing page...</p>
@@ -38,25 +39,27 @@ function App() {
           }
         />
         {/* Admin route for existing room management forms */}
-        <Route path="/admin" element={<AdminPortal />}>
+        <Route path='/admin' element={<AdminPortal />}>
           <Route index element={<AdminDashboard />} />
-          <Route path="rooms" element={<AdminRooms />} />
-          <Route path="room-types" element={<AdminRoomTypes />} />
-          <Route path="bookings" element={<AdminBookings />} />
+          <Route path='rooms' element={<AdminRooms />} />
+          <Route path='room-types' element={<AdminRoomTypes />} />
+          <Route path='bookings' element={<AdminBookings />} />
         </Route>
 
         {/* Booking Confirmation Page (Payment) */}
-        <Route path="/booking/confirm" element={<BookingConfirmPage />} />
+        <Route path='/booking/confirm' element={<BookingConfirmPage />} />
+
         {/* Booking Confirmation Success Page */}
         <Route
-          path="/booking/confirmation/:confirmationNumber"
+          path='/booking/confirmation/:confirmationNumber'
           element={<BookingConfirmationPage />}
         />
 
-        <Route path="/customer" element={<CustomerPortal />}>
+        <Route path='/customer' element={<CustomerPortal />}>
           <Route index element={<BrowseRooms />} />
-          <Route path="bookings" element={<MyBookings />} />
-          <Route path="profile" element={<Profile />} />
+          <Route path='bookings' element={<BookingsPage />} />
+          <Route path='bookings/:id' element={<BookingDetailsPage />} />
+          <Route path='profile' element={<Profile />} />
         </Route>
       </Routes>
     </>

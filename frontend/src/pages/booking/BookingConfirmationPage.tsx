@@ -1,7 +1,7 @@
 import { Alert, Card, CardContent, Container, Typography } from "@mui/material";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { formatDate } from "../util/helper";
-import type { BookingFormState } from "../types/booking";
+import { formatDate } from "../../util/helper";
+import type { BookingFormState } from "../../types/booking";
 
 // Hotel check-in/check-out policy times
 const CHECK_IN_TIME = "3:00 PM";
@@ -21,7 +21,9 @@ function BookingConfirmationPage() {
 
   // Try to get booking data from route state (passed from payment page)
   const stateData = location.state?.bookingData as BookingFormState | undefined;
-  const stateConfirmationNumber = location.state?.confirmationNumber as string | undefined;
+  const stateConfirmationNumber = location.state?.confirmationNumber as
+    | string
+    | undefined;
 
   // TODO: If no state data, fetch from backend using confirmationNumber
   // useEffect(() => {
@@ -50,13 +52,16 @@ function BookingConfirmationPage() {
     );
   }
 
-  const displayConfirmationNumber = stateConfirmationNumber || confirmationNumber || "TIP-DEMO123";
+  const displayConfirmationNumber =
+    stateConfirmationNumber || confirmationNumber || "TIP-DEMO123";
 
   return (
     <Container maxWidth='md' sx={{ py: 4 }}>
       <Alert severity='success' sx={{ mb: 2 }}>
         <Typography variant='h6'>Booking Confirmed!</Typography>
-        <Typography>Confirmation Number: {displayConfirmationNumber}</Typography>
+        <Typography>
+          Confirmation Number: {displayConfirmationNumber}
+        </Typography>
         <Typography variant='body2' sx={{ mt: 1 }}>
           A confirmation email has been sent to your email address.
         </Typography>
