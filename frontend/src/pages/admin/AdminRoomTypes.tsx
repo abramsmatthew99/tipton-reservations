@@ -1,7 +1,11 @@
 import { Fragment, useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import RoomTypeForm from "../../components/RoomTypeForm";
-import { createRoomType, deleteRoomType, getRoomTypes } from "../../apis/roomtype";
+import {
+  createRoomType,
+  deleteRoomType,
+  getRoomTypes,
+} from "../../apis/roomtype";
 import { getAmenities } from "../../apis/amenities";
 import {
   Box,
@@ -222,8 +226,8 @@ const AdminRoomTypes = () => {
                                     >
                                       Images
                                     </Typography>
-                                    {(roomType.imageUrls?.length ||
-                                      roomType.imageUrl) ? (
+                                    {roomType.imageUrls?.length ||
+                                    roomType.imageUrl ? (
                                       <Stack
                                         direction="row"
                                         spacing={1}
@@ -238,7 +242,9 @@ const AdminRoomTypes = () => {
                                             key={`${rowId}-image-${urlIndex}`}
                                             component="img"
                                             src={url}
-                                            alt={`${roomType.name} ${urlIndex + 1}`}
+                                            alt={`${roomType.name} ${
+                                              urlIndex + 1
+                                            }`}
                                             sx={{
                                               width: 160,
                                               height: 100,
@@ -270,51 +276,37 @@ const AdminRoomTypes = () => {
                                       <Stack
                                         direction="row"
                                         spacing={1}
-                                        mt={1}
                                         flexWrap="wrap"
                                       >
-                                        {selectedAmenityIds.map(
-                                          (amenityId) => {
-                                            const match = amenities.find(
-                                              (amenity) =>
-                                                String(amenity.id) ===
-                                                String(amenityId)
+                                        {selectedAmenityIds.map((amenityId) => {
+                                          const amenity = amenities.find(
+                                            (a) =>
+                                              String(a.id) === String(amenityId)
+                                          );
+
+                                          if (!amenity) return null;
+
+                                          const iconName =
+                                            resolveAmenityIconName(
+                                              amenity.iconCode ?? ""
                                             );
-                                            const iconName =
-                                              resolveAmenityIconName(
-                                                match?.iconCode ?? ""
-                                              );
-                                            const IconComponent = iconName
-                                              ? (
-                                                  MuiIcons as Record<
-                                                    string,
-                                                    ComponentType<{
-                                                      fontSize?:
-                                                        | "small"
-                                                        | "inherit"
-                                                        | "medium"
-                                                        | "large";
-                                                    }>
-                                                  >
-                                                )[iconName]
-                                              : null;
-                                            return (
-                                              <Chip
-                                                key={String(amenityId)}
-                                                size="small"
-                                                label={
-                                                  match?.name ??
-                                                  `Amenity ${amenityId}`
-                                                }
-                                                icon={
-                                                  IconComponent ? (
-                                                    <IconComponent fontSize="small" />
-                                                  ) : undefined
-                                                }
-                                              />
-                                            );
-                                          }
-                                        )}
+                                          const IconComponent = iconName
+                                            ? MuiIcons[iconName]
+                                            : null;
+
+                                          return (
+                                            <Chip
+                                              key={amenityId}
+                                              size="small"
+                                              label={amenity.name}
+                                              icon={
+                                                IconComponent ? (
+                                                  <IconComponent fontSize="small" />
+                                                ) : undefined
+                                              }
+                                            />
+                                          );
+                                        })}
                                       </Stack>
                                     ) : (
                                       <Typography

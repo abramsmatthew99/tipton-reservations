@@ -5,7 +5,7 @@ const NavBar = () => {
         <a className="landing-nav__link" href="/admin">
           Admin Login
         </a>
-        <a className="landing-nav__link" href="/login/">
+        <a className="landing-nav__link" href="/customer">
           Customer Login
         </a>
       </div>
