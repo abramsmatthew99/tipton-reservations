@@ -1,4 +1,21 @@
 import { useState } from "react";
+import type { ComponentType } from "react";
+import {
+  Box,
+  Button,
+  Chip,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
+import * as MuiIcons from "@mui/icons-material";
+import CloseIcon from "@mui/icons-material/Close";
+
+import { resolveAmenityIconName } from "../utils/amenityIcons";
 
 type RoomTypeFormState = {
   name: string;
@@ -6,13 +23,11 @@ type RoomTypeFormState = {
   basePrice: string;
   maxOccupancy: string;
   imageUrl: string;
-  active: string;
   amenityIds?: string[];
 };
 
 type DropdownData = {
   imageOptions: Array<{ id: string; url: string }>;
-  activeOptions: Array<{ value: string; label: string }>;
 };
 
 type AmenityOption = {
@@ -53,134 +68,181 @@ function RoomTypeForm({
         onSubmit();
       }}
     >
-      <h2>{title}</h2>
+      <Stack spacing={2}>
+        <Typography variant="h5" fontWeight={600}>
+          {title}
+        </Typography>
 
-      <label htmlFor={`${formIdPrefix}-name`}>Name</label>
-      <input
-        id={`${formIdPrefix}-name`}
-        type="text"
-        value={formState.name}
-        onChange={(event) =>
-          setFormState({ ...formState, name: event.target.value })
-        }
-      />
+        <TextField
+          id={`${formIdPrefix}-name`}
+          label="Name"
+          value={formState.name}
+          onChange={(event) =>
+            setFormState({ ...formState, name: event.target.value })
+          }
+          fullWidth
+        />
 
-      <label htmlFor={`${formIdPrefix}-description`}>Description</label>
-      <textarea
-        id={`${formIdPrefix}-description`}
-        rows={3}
-        value={formState.description}
-        onChange={(event) =>
-          setFormState({ ...formState, description: event.target.value })
-        }
-      />
+        <TextField
+          id={`${formIdPrefix}-description`}
+          label="Description"
+          value={formState.description}
+          onChange={(event) =>
+            setFormState({ ...formState, description: event.target.value })
+          }
+          fullWidth
+          multiline
+          minRows={3}
+        />
 
-      <div className="grid">
-        <div>
-          <label htmlFor={`${formIdPrefix}-base-price`}>Base Price</label>
-          <input
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+          <TextField
             id={`${formIdPrefix}-base-price`}
+            label="Base Price"
             type="number"
-            step="0.01"
+            inputProps={{ step: "0.01" }}
             value={formState.basePrice}
             onChange={(event) =>
               setFormState({ ...formState, basePrice: event.target.value })
             }
+            fullWidth
           />
-        </div>
-        <div>
-          <label htmlFor={`${formIdPrefix}-max-occupancy`}>Max Occupancy</label>
-          <select
-            id={`${formIdPrefix}-max-occupancy`}
-            value={formState.maxOccupancy}
+          <FormControl fullWidth>
+            <InputLabel id={`${formIdPrefix}-max-occupancy-label`}>
+              Max Occupancy
+            </InputLabel>
+            <Select
+              id={`${formIdPrefix}-max-occupancy`}
+              labelId={`${formIdPrefix}-max-occupancy-label`}
+              label="Max Occupancy"
+              value={formState.maxOccupancy}
+              onChange={(event) =>
+                setFormState({
+                  ...formState,
+                  maxOccupancy: String(event.target.value),
+                })
+              }
+            >
+              {Array.from({ length: 12 }, (_, index) => {
+                const value = String(index + 1);
+                return (
+                  <MenuItem key={value} value={value}>
+                    {value}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
+        </Stack>
+
+        <FormControl fullWidth>
+          <InputLabel id={`${formIdPrefix}-image-url-label`}>
+            Image Url
+          </InputLabel>
+          <Select
+            id={`${formIdPrefix}-image-url`}
+            labelId={`${formIdPrefix}-image-url-label`}
+            label="Image Url"
+            value={formState.imageUrl}
             onChange={(event) =>
-              setFormState({ ...formState, maxOccupancy: event.target.value })
-            }
-          >
-            {Array.from({ length: 12 }, (_, index) => {
-              const value = String(index + 1);
-              return (
-                <option key={value} value={value}>
-                  {value}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-      </div>
-
-      <label htmlFor={`${formIdPrefix}-image-url`}>Image Url</label>
-      <select
-        id={`${formIdPrefix}-image-url`}
-        value={formState.imageUrl}
-        onChange={(event) =>
-          setFormState({ ...formState, imageUrl: event.target.value })
-        }
-      >
-        {dropdownData.imageOptions.map((option) => (
-          <option key={option.id} value={option.url}>
-            {option.url}
-          </option>
-        ))}
-      </select>
-
-      <label htmlFor={`${formIdPrefix}-active`}>Active</label>
-      <select
-        id={`${formIdPrefix}-active`}
-        value={formState.active}
-        onChange={(event) =>
-          setFormState({ ...formState, active: event.target.value })
-        }
-      >
-        {dropdownData.activeOptions.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-
-      {amenitiesOptions && amenitiesOptions.length > 0 && (
-        <>
-          <label htmlFor={`${formIdPrefix}-amenities`}>Amenities</label>
-          <select
-            id={`${formIdPrefix}-amenities`}
-            value={amenitySelectValue}
-            onChange={(event) => {
-              const nextId = event.target.value;
-              setAmenitySelectValue("");
-              if (!nextId) return;
-              if (selectedAmenityIds.includes(nextId)) return;
               setFormState({
                 ...formState,
-                amenityIds: [...selectedAmenityIds, nextId],
-              });
-            }}
+                imageUrl: String(event.target.value),
+              })
+            }
           >
-            <option value="">Select an amenity</option>
-            {amenitiesOptions.map((amenity) => (
-              <option key={amenity.id} value={String(amenity.id)}>
-                {amenity.name ?? `Amenity ${amenity.id}`}
-              </option>
+            {dropdownData.imageOptions.map((option) => (
+              <MenuItem key={option.id} value={option.url}>
+                {option.url}
+              </MenuItem>
             ))}
-          </select>
+          </Select>
+        </FormControl>
 
-          {selectedAmenityIds.length > 0 && (
-            <div className="selected-amenities">
-              Selected:{" "}
-              {selectedAmenityIds
-                .map((id) => {
+        {amenitiesOptions && amenitiesOptions.length > 0 && (
+          <Box>
+            <FormControl fullWidth>
+              <InputLabel id={`${formIdPrefix}-amenities-label`}>
+                Amenities
+              </InputLabel>
+              <Select
+                id={`${formIdPrefix}-amenities`}
+                labelId={`${formIdPrefix}-amenities-label`}
+                label="Amenities"
+                value={amenitySelectValue}
+                onChange={(event) => {
+                  const nextId = String(event.target.value);
+                  setAmenitySelectValue("");
+                  if (!nextId) return;
+                  if (selectedAmenityIds.includes(nextId)) return;
+                  setFormState({
+                    ...formState,
+                    amenityIds: [...selectedAmenityIds, nextId],
+                  });
+                }}
+              >
+                <MenuItem value="">Select an amenity</MenuItem>
+                {amenitiesOptions.map((amenity) => (
+                  <MenuItem key={amenity.id} value={String(amenity.id)}>
+                    {amenity.name ?? `Amenity ${amenity.id}`}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {selectedAmenityIds.length > 0 && (
+              <Stack direction="row" spacing={1} mt={1} flexWrap="wrap">
+                {selectedAmenityIds.map((id) => {
                   const match = amenitiesOptions.find(
                     (amenity) => String(amenity.id) === id
                   );
-                  return match?.name ?? id;
-                })
-                .join(", ")}
-            </div>
-          )}
-        </>
-      )}
+                  const label = match?.name ?? id;
+                  const iconName = resolveAmenityIconName(
+                    match?.iconCode ?? ""
+                  );
+                  const IconComponent = iconName
+                    ? (
+                        MuiIcons as Record<
+                          string,
+                          ComponentType<{
+                            fontSize?: "small" | "inherit" | "medium" | "large";
+                          }>
+                        >
+                      )[iconName]
+                    : null;
+                  return (
+                    <Chip
+                      key={id}
+                      label={label}
+                      size="small"
+                      icon={
+                        IconComponent ? (
+                          <IconComponent fontSize="small" />
+                        ) : undefined
+                      }
+                      onDelete={() =>
+                        setFormState({
+                          ...formState,
+                          amenityIds: selectedAmenityIds.filter(
+                            (selectedId) => selectedId !== id
+                          ),
+                        })
+                      }
+                      deleteIcon={<CloseIcon fontSize="small" />}
+                    />
+                  );
+                })}
+              </Stack>
+            )}
+          </Box>
+        )}
 
-      <button type="submit">{submitLabel}</button>
+        <Box>
+          <Button type="submit" variant="contained">
+            {submitLabel}
+          </Button>
+        </Box>
+      </Stack>
     </form>
   );
 }

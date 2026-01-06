@@ -23,3 +23,7 @@ export const getRoomTypes = async () => {
 
   return data;
 };
+export const deleteRoomType = async (id) => {
+  const { data } = await axios.delete(`${baseURL}/room-types/${id}`);
+  return data;
+};
