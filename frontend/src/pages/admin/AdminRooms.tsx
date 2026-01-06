@@ -7,7 +7,9 @@ import {
   Button,
   Collapse,
   Divider,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -17,6 +19,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import { setRoomStatus } from "../../apis/room";
 
 type RoomTypeOption = {
   id: string | number;
@@ -31,6 +34,8 @@ type Room = {
   status: string;
 };
 
+const ROOM_STATUS_OPTIONS = ["AVAILABLE", "OCCUPIED", "MAINTENANCE"] as const;
+
 const AdminRooms = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
@@ -39,7 +44,7 @@ const AdminRooms = () => {
     roomTypeId: "",
     roomNumber: "",
     floor: "",
-    status: "active",
+    status: "AVAILABLE",
   });
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
 
@@ -50,6 +55,19 @@ const AdminRooms = () => {
     };
     const res = await createRoom(payload);
     setRooms((prev) => (Array.isArray(res) ? res : [...prev, res]));
+  };
+  const handleStatusChange = async (id: string | number, status: string) => {
+    await setRoomStatus(status, id);
+    setRooms((prev) =>
+      prev.map((room) =>
+        room.id === id
+          ? {
+              ...room,
+              status,
+            }
+          : room
+      )
+    );
   };
 
   useEffect(() => {
@@ -141,7 +159,26 @@ const AdminRooms = () => {
                       <TableCell>{room.floor ?? "-"}</TableCell>
                       <TableCell>{room.roomNumber}</TableCell>
                       <TableCell>{room.roomTypeId}</TableCell>
-                      <TableCell>{room.status}</TableCell>
+                      <TableCell>
+                        <Select
+                          size="small"
+                          value={room.status}
+                          disabled={room.id == null}
+                          onChange={(event) => {
+                            if (room.id == null) return;
+                            handleStatusChange(
+                              room.id,
+                              String(event.target.value)
+                            );
+                          }}
+                        >
+                          {ROOM_STATUS_OPTIONS.map((statusOption) => (
+                            <MenuItem key={statusOption} value={statusOption}>
+                              {statusOption}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}

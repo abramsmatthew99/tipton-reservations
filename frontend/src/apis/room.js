@@ -19,3 +19,16 @@ export const getRooms = async () => {
 
   return data;
 };
+
+export const setRoomStatus = async (status, id) => {
+  const { data } = await axios.patch(
+    `${baseURL}/rooms/${id}/status`,
+    JSON.stringify(status),
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return data;
+};

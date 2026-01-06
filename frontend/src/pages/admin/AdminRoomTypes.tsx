@@ -38,6 +38,7 @@ type RoomType = {
   basePrice?: string | number;
   maxOccupancy?: string | number;
   imageUrl?: string;
+  imageUrls?: string[];
   amenityIds?: Array<string | number>;
 };
 
@@ -214,108 +215,116 @@ const AdminRoomTypes = () => {
                                         "No description provided."}
                                     </Typography>
                                   </Box>
-                                  <Stack
-                                    direction={{ xs: "column", sm: "row" }}
-                                    spacing={2}
-                                  >
-                                    <Box>
-                                      <Typography
-                                        variant="subtitle2"
-                                        fontWeight={600}
+                                  <Box>
+                                    <Typography
+                                      variant="subtitle2"
+                                      fontWeight={600}
+                                    >
+                                      Images
+                                    </Typography>
+                                    {(roomType.imageUrls?.length ||
+                                      roomType.imageUrl) ? (
+                                      <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        mt={1}
+                                        flexWrap="wrap"
                                       >
-                                        Image
-                                      </Typography>
-                                      {roomType.imageUrl ? (
-                                        <Box
-                                          component="img"
-                                          src={roomType.imageUrl}
-                                          alt={roomType.name}
-                                          sx={{
-                                            mt: 1,
-                                            width: 160,
-                                            height: 100,
-                                            objectFit: "cover",
-                                            borderRadius: 1,
-                                            border: "1px solid",
-                                            borderColor: "divider",
-                                          }}
-                                        />
-                                      ) : (
-                                        <Typography
-                                          variant="body2"
-                                          color="text.secondary"
-                                        >
-                                          No image.
-                                        </Typography>
-                                      )}
-                                    </Box>
-                                    <Box flex={1}>
+                                        {(roomType.imageUrls ??
+                                          (roomType.imageUrl
+                                            ? [roomType.imageUrl]
+                                            : []))!.map((url, urlIndex) => (
+                                          <Box
+                                            key={`${rowId}-image-${urlIndex}`}
+                                            component="img"
+                                            src={url}
+                                            alt={`${roomType.name} ${urlIndex + 1}`}
+                                            sx={{
+                                              width: 160,
+                                              height: 100,
+                                              objectFit: "cover",
+                                              borderRadius: 1,
+                                              border: "1px solid",
+                                              borderColor: "divider",
+                                            }}
+                                          />
+                                        ))}
+                                      </Stack>
+                                    ) : (
                                       <Typography
-                                        variant="subtitle2"
-                                        fontWeight={600}
+                                        variant="body2"
+                                        color="text.secondary"
                                       >
-                                        Amenities
+                                        No image.
                                       </Typography>
-                                      {selectedAmenityIds.length > 0 ? (
-                                        <Stack
-                                          direction="row"
-                                          spacing={1}
-                                          mt={1}
-                                          flexWrap="wrap"
-                                        >
-                                          {selectedAmenityIds.map(
-                                            (amenityId) => {
-                                              const match = amenities.find(
-                                                (amenity) =>
-                                                  String(amenity.id) ===
-                                                  String(amenityId)
+                                    )}
+                                  </Box>
+                                  <Box>
+                                    <Typography
+                                      variant="subtitle2"
+                                      fontWeight={600}
+                                    >
+                                      Amenities
+                                    </Typography>
+                                    {selectedAmenityIds.length > 0 ? (
+                                      <Stack
+                                        direction="row"
+                                        spacing={1}
+                                        mt={1}
+                                        flexWrap="wrap"
+                                      >
+                                        {selectedAmenityIds.map(
+                                          (amenityId) => {
+                                            const match = amenities.find(
+                                              (amenity) =>
+                                                String(amenity.id) ===
+                                                String(amenityId)
+                                            );
+                                            const iconName =
+                                              resolveAmenityIconName(
+                                                match?.iconCode ?? ""
                                               );
-                                              const iconName =
-                                                resolveAmenityIconName(
-                                                  match?.iconCode ?? ""
-                                                );
-                                              const IconComponent = iconName
-                                                ? (
-                                                    MuiIcons as Record<
-                                                      string,
-                                                      ComponentType<{
-                                                        fontSize?:
-                                                          | "small"
-                                                          | "inherit"
-                                                          | "medium"
-                                                          | "large";
-                                                      }>
-                                                    >
-                                                  )[iconName]
-                                                : null;
-                                              return (
-                                                <Chip
-                                                  key={String(amenityId)}
-                                                  size="small"
-                                                  label={
-                                                    match?.name ??
-                                                    `Amenity ${amenityId}`
-                                                  }
-                                                  icon={
-                                                    IconComponent ? (
-                                                      <IconComponent fontSize="small" />
-                                                    ) : undefined
-                                                  }
-                                                />
-                                              );
-                                            }
-                                          )}
-                                        </Stack>
-                                      ) : (
-                                        <Typography
-                                          variant="body2"
-                                          color="text.secondary"
-                                        >
-                                          No amenities assigned.
-                                        </Typography>
-                                      )}
-                                    </Box>
-                                  </Stack>
+                                            const IconComponent = iconName
+                                              ? (
+                                                  MuiIcons as Record<
+                                                    string,
+                                                    ComponentType<{
+                                                      fontSize?:
+                                                        | "small"
+                                                        | "inherit"
+                                                        | "medium"
+                                                        | "large";
+                                                    }>
+                                                  >
+                                                )[iconName]
+                                              : null;
+                                            return (
+                                              <Chip
+                                                key={String(amenityId)}
+                                                size="small"
+                                                label={
+                                                  match?.name ??
+                                                  `Amenity ${amenityId}`
+                                                }
+                                                icon={
+                                                  IconComponent ? (
+                                                    <IconComponent fontSize="small" />
+                                                  ) : undefined
+                                                }
+                                              />
+                                            );
+                                          }
+                                        )}
+                                      </Stack>
+                                    ) : (
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
+                                        No amenities assigned.
+                                      </Typography>
+                                    )}
+                                  </Box>
                                   <Box
                                     display="flex"
                                     justifyContent="flex-end"

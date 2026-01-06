@@ -6,6 +6,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.group1.tipton_reservations.model.enums.RoomStatus;
+
 
 /**
  * Represents a physical room unit in the hotel .
@@ -27,11 +29,11 @@ public class Room {
     private String roomNumber;
     private Integer floor;
     
-    private String status;
+    private RoomStatus status;
 
 
 
-    public Room(String roomTypeId, String roomNumber, Integer floor, String status) {
+    public Room(String roomTypeId, String roomNumber, Integer floor, RoomStatus status) {
         this.roomTypeId = roomTypeId;
         this.roomNumber = roomNumber;
         this.floor = floor;
