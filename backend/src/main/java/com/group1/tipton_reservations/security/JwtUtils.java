@@ -32,6 +32,7 @@ public class JwtUtils {
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
                 .claim("roles", roles)
+                .claim("userId", userPrincipal.getUser().getId())  // userId claim
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key(), SignatureAlgorithm.HS256)
@@ -41,6 +42,16 @@ public class JwtUtils {
     public String getUserNameFromJwtToken(String token) {
         return Jwts.parserBuilder().setSigningKey(key()).build()
                .parseClaimsJws(token).getBody().getSubject();
+    }
+
+    // extract userId claim from JWT token to return the database userId
+    public String getUserIdFromJwtToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .get("userId", String.class);
     }
 
     public boolean validateJwtToken(String authToken) {

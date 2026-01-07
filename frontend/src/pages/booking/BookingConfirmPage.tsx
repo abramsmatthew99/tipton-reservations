@@ -2,11 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Container, Grid, Card, CardContent, Typography } from "@mui/material";
 import { Elements } from "@stripe/react-stripe-js";
-import type { BookingFormState } from "../types/booking";
-import BookingSummaryCard from "../components/Booking/BookingSummaryCard";
-import GuestInfoCard from "../components/Booking/GuestInfoCard";
-import StripePaymentForm from "../components/Payment/StripePaymentForm";
-import { stripePromise } from "../config/stripe";
+import type { BookingFormState } from "../../types/booking";
+import BookingSummaryCard from "../../components/Booking/BookingSummaryCard";
+import GuestInfoCard from "../../components/Booking/GuestInfoCard";
+import StripePaymentForm from "../../components/Payment/StripePaymentForm";
+import { stripePromise } from "../../config/stripe";
 
 /**
  * Booking Confirmation Page
@@ -40,7 +40,8 @@ function BookingConfirmPage() {
 
     // TODO: Replace with actual API call to POST /bookings when implemented
     // For now, simulate booking creation
-    const mockConfirmationNumber = "TIP-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const mockConfirmationNumber =
+      "TIP-" + Math.random().toString(36).substring(2, 8).toUpperCase();
 
     console.log("Booking data to submit:", {
       roomTypeId: bookingData.roomTypeId,

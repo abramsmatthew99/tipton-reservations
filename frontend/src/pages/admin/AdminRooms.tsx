@@ -19,7 +19,6 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { setRoomStatus } from "../../apis/room";
 
 type RoomTypeOption = {
   id: string | number;
@@ -31,10 +30,7 @@ type Room = {
   floor: number | string | null;
   roomNumber: string | number;
   roomTypeId: string | number;
-  status: string;
 };
-
-const ROOM_STATUS_OPTIONS = ["AVAILABLE", "OCCUPIED", "MAINTENANCE"] as const;
 
 const AdminRooms = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -44,7 +40,6 @@ const AdminRooms = () => {
     roomTypeId: "",
     roomNumber: "",
     floor: "",
-    status: "AVAILABLE",
   });
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
 
@@ -56,20 +51,6 @@ const AdminRooms = () => {
     const res = await createRoom(payload);
     setRooms((prev) => (Array.isArray(res) ? res : [...prev, res]));
   };
-  const handleStatusChange = async (id: string | number, status: string) => {
-    await setRoomStatus(status, id);
-    setRooms((prev) =>
-      prev.map((room) =>
-        room.id === id
-          ? {
-              ...room,
-              status,
-            }
-          : room
-      )
-    );
-  };
-
   useEffect(() => {
     const getStuff = async () => {
       const [roomTypesRes, roomRes] = await Promise.all([
@@ -102,7 +83,7 @@ const AdminRooms = () => {
                 Create Room
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Add a room number, assign a type, and set status.
+                Add a room number, assign a type.
               </Typography>
             </Box>
             <Button
@@ -141,7 +122,6 @@ const AdminRooms = () => {
                   <TableCell>Floor</TableCell>
                   <TableCell>Room Number</TableCell>
                   <TableCell>Room Type ID</TableCell>
-                  <TableCell>Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -159,26 +139,6 @@ const AdminRooms = () => {
                       <TableCell>{room.floor ?? "-"}</TableCell>
                       <TableCell>{room.roomNumber}</TableCell>
                       <TableCell>{room.roomTypeId}</TableCell>
-                      <TableCell>
-                        <Select
-                          size="small"
-                          value={room.status}
-                          disabled={room.id == null}
-                          onChange={(event) => {
-                            if (room.id == null) return;
-                            handleStatusChange(
-                              room.id,
-                              String(event.target.value)
-                            );
-                          }}
-                        >
-                          {ROOM_STATUS_OPTIONS.map((statusOption) => (
-                            <MenuItem key={statusOption} value={statusOption}>
-                              {statusOption}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </TableCell>
                     </TableRow>
                   ))
                 )}
