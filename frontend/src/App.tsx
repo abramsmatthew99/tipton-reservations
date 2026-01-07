@@ -2,13 +2,6 @@ import { Routes, Route } from "react-router-dom";
 import "./App.css";
 import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
-import BookingConfirmPage from "./pages/BookingConfirmPage";
-import BookingConfirmationPage from "./pages/BookingConfirmationPage";
-import RoomTypeForm from "./components/RoomTypeForm";
-import RoomCreateForm from "./components/RoomCreateForm";
-import { createRoomType, getRoomTypes } from "./apis/roomtype";
-import { createRoom } from "./apis/room";
-import { getAmenities } from "./apis/amenities";
 import BookingConfirmPage from "./pages/booking/BookingConfirmPage";
 import BookingConfirmationPage from "./pages/booking/BookingConfirmationPage";
 import NavBar from "./components/NavBar";
@@ -22,6 +15,7 @@ import BrowseRooms from "./pages/customer/BrowseRooms";
 import Profile from "./pages/customer/Profile";
 import BookingsPage from "./pages/customer/BookingsPage";
 import BookingDetailsPage from "./pages/booking/BookingDetailsPage";
+import PrivateRoute from "./components/PrivateRoute";
 
 function App() {
   return (
@@ -47,12 +41,13 @@ function App() {
           }
         />
         {/* Admin route for existing room management forms */}
-        {/* Future Todo: Wrap this in <PrivateRoute role="ADMIN"> */}
-        <Route path="/admin" element={<AdminPortal />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path='rooms' element={<AdminRooms />} />
-          <Route path='room-types' element={<AdminRoomTypes />} />
-          <Route path='bookings' element={<AdminBookings />} />
+        <Route element={<PrivateRoute allowedRoles={['ROLE_ADMIN']} />}>
+          <Route path="/admin" element={<AdminPortal />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path='rooms' element={<AdminRooms />} />
+            <Route path='room-types' element={<AdminRoomTypes />} />
+            <Route path='bookings' element={<AdminBookings />} />
+          </Route>
         </Route>
 
         {/* Booking Confirmation Page (Payment) */}
@@ -64,14 +59,14 @@ function App() {
           element={<BookingConfirmationPage />}
         />
         {/* --- Customer Portal --- */}
-        {/* Future Todo: Wrap this in <PrivateRoute role="CUSTOMER"> */}
-        <Route path="/customer" element={<CustomerPortal />}>
-          <Route index element={<BrowseRooms />} />
-          <Route path='bookings' element={<BookingsPage />} />
-          <Route path='bookings/:id' element={<BookingDetailsPage />} />
-          <Route path='profile' element={<Profile />} />
+        <Route element={<PrivateRoute allowedRoles={['ROLE_ADMIN', 'ROLE_CUSTOMER']}/>}>
+          <Route path="/customer" element={<CustomerPortal />}>
+            <Route index element={<BrowseRooms />} />
+            <Route path='bookings' element={<BookingsPage />} />
+            <Route path='bookings/:id' element={<BookingDetailsPage />} />
+            <Route path='profile' element={<Profile />} />
+          </Route>
         </Route>
-
 
       </Routes>
     </AuthProvider>
