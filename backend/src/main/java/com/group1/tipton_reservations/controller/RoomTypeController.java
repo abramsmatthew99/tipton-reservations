@@ -62,9 +62,10 @@ public class RoomTypeController {
     @GetMapping("/available")
     public ResponseEntity<List<RoomTypeAvailabilityResponse>> findAvailableRoomTypes(
             @RequestParam("checkInDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDate,
-            @RequestParam("checkOutDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDate) {
+            @RequestParam("checkOutDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDate, 
+            @RequestParam("guests") Integer guests) {
         try {
-            List<RoomTypeAvailabilityResponse> availableRoomTypes = roomTypeService.findAvailableRoomTypes(checkInDate, checkOutDate);
+            List<RoomTypeAvailabilityResponse> availableRoomTypes = roomTypeService.findAvailableRoomTypes(checkInDate, checkOutDate, guests);
             return new ResponseEntity<>(availableRoomTypes, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

@@ -82,7 +82,7 @@ public class RoomTypeService {
      * @param checkOutDate the check-out date
      * @return list of available room types with availability count
      */
-    public List<RoomTypeAvailabilityResponse> findAvailableRoomTypes(LocalDate checkInDate, LocalDate checkOutDate) {
+    public List<RoomTypeAvailabilityResponse> findAvailableRoomTypes(LocalDate checkInDate, LocalDate checkOutDate, Integer guests) {
         if (checkInDate == null || checkOutDate == null) {
             throw new IllegalArgumentException("Check-in and check-out dates are required");
         }
@@ -96,9 +96,11 @@ public class RoomTypeService {
 
         // Adding available room types to list
         for (RoomType roomType : allRoomTypes) {
-            int availableCount = countAvailableRooms(roomType.getId(), checkInDate, checkOutDate);
-            if (availableCount > 0) {
-                availableRoomTypes.add(new RoomTypeAvailabilityResponse(roomType, availableCount));
+            if (roomType.getMaxOccupancy() >= guests) {
+                int availableCount = countAvailableRooms(roomType.getId(), checkInDate, checkOutDate);
+                if (availableCount > 0) {
+                    availableRoomTypes.add(new RoomTypeAvailabilityResponse(roomType, availableCount));
+                }
             }
         }
 

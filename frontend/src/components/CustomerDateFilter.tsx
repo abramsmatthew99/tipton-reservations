@@ -1,18 +1,30 @@
 import React, { useState } from "react";
-
 type BookingSearchProps = {
-  onSearch?: (checkIn: string, checkOut: string, guests: number) => void;
+  onSearch: (checkIn: string, checkOut: string, guests: number) => void;
+  checkInDate: string;
+  checkOutDate: string;
+  guests: number;
 };
 
-function BookingSearchBar({ onSearch }: BookingSearchProps) {
-  const [checkIn, setCheckIn] = useState("");
-  const [checkOut, setCheckOut] = useState("");
-  const [guests, setGuests] = useState(2);
+function CustomerDateFilter({
+  onSearch,
+  checkInDate,
+  checkOutDate,
+  guests,
+}: BookingSearchProps) {
+  const [localCheckIn, setLocalCheckIn] = useState(checkInDate || "");
+  const [localCheckOut, setLocalCheckOut] = useState(checkOutDate || "");
+  const [localGuests, setLocalGuests] = useState(guests || 2);
+  const [error, setError] = useState("");
 
-  const handleSearch = () => {
-    if (onSearch) {
-      onSearch(checkIn, checkOut, guests);
+  const handleSearchClick = () => {
+    if (!localCheckIn || !localCheckOut || !localGuests) {
+      setError("Please select check-in, check-out, and guests.");
+      return;
     }
+
+    setError("");
+    onSearch(localCheckIn, localCheckOut, localGuests);
   };
 
   return (
@@ -25,8 +37,8 @@ function BookingSearchBar({ onSearch }: BookingSearchProps) {
           </label>
           <input
             type="date"
-            value={checkIn}
-            onChange={(e) => setCheckIn(e.target.value)}
+            value={localCheckIn}
+            onChange={(e) => setLocalCheckIn(e.target.value)}
             className="px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="mm/dd/yyyy"
           />
@@ -39,8 +51,8 @@ function BookingSearchBar({ onSearch }: BookingSearchProps) {
           </label>
           <input
             type="date"
-            value={checkOut}
-            onChange={(e) => setCheckOut(e.target.value)}
+            value={localCheckOut}
+            onChange={(e) => setLocalCheckOut(e.target.value)}
             className="px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             placeholder="mm/dd/yyyy"
           />
@@ -52,8 +64,8 @@ function BookingSearchBar({ onSearch }: BookingSearchProps) {
             Guests
           </label>
           <select
-            value={guests}
-            onChange={(e) => setGuests(Number(e.target.value))}
+            value={localGuests}
+            onChange={(e) => setLocalGuests(Number(e.target.value))}
             className="px-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
           >
             <option value={1}>1 Guest</option>
@@ -74,32 +86,18 @@ function BookingSearchBar({ onSearch }: BookingSearchProps) {
         {/* Search Button */}
         <div className="flex flex-col justify-end">
           <button
-            onClick={handleSearch}
+            onClick={handleSearchClick}
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >
             Search
           </button>
+          {error ? (
+            <p className="mt-2 text-sm text-red-600">{error}</p>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-// Demo
-export default function App() {
-  const handleSearch = (checkIn: string, checkOut: string, guests: number) => {
-    console.log("Search:", { checkIn, checkOut, guests });
-    alert(`Searching for ${guests} guests from ${checkIn} to ${checkOut}`);
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">
-          Find Your Perfect Stay
-        </h1>
-        <BookingSearchBar onSearch={handleSearch} />
-      </div>
-    </div>
-  );
-}
+export default CustomerDateFilter;
