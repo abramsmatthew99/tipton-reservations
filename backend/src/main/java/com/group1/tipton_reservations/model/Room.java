@@ -6,7 +6,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.group1.tipton_reservations.model.enums.RoomStatus;
 
 
 /**
@@ -29,15 +28,13 @@ public class Room {
     private String roomNumber;
     private Integer floor;
     
-    private RoomStatus status;
 
 
 
-    public Room(String roomTypeId, String roomNumber, Integer floor, RoomStatus status) {
+    public Room(String roomTypeId, String roomNumber, Integer floor) {
         this.roomTypeId = roomTypeId;
         this.roomNumber = roomNumber;
         this.floor = floor;
-        this.status = status;
     } 
 
 }

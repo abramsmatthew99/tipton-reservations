@@ -3,7 +3,7 @@ import { getAmenities } from "../../apis/amenities";
 import { getRoomTypes } from "../../apis/roomtype";
 import { Box, Stack, Typography } from "@mui/material";
 import CustomerRoomCard from "../../components/CustomerRoomCard";
-
+import CustomerDateFilter from "../../components/CustomerDateFilter";
 type Amenity = {
   id: string | number;
   name?: string;
@@ -53,9 +53,11 @@ const BrowseRooms = () => {
         <Typography variant="h5" fontWeight={600}>
           Browse Rooms
         </Typography>
+
         <Typography variant="body2" color="text.secondary">
-          Explore room categories, pricing, and occupancy details.
+          Filter available rooms by date and num of guests.
         </Typography>
+        <CustomerDateFilter></CustomerDateFilter>
       </Box>
       <Stack spacing={2}>
         {roomTypes.length === 0 ? (
