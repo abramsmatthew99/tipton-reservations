@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from 'jwt-decode';
+import { type User } from '../types/models';
 import {
     Box,
     Button,
@@ -16,25 +18,32 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
 
 export default function Login() {
-    // Local state for the form inputs
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
-    // Get the login function from our "Brain" (Context)
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault(); // Stop the page from reloading
-        setError('');       // Clear previous errors
+        e.preventDefault(); 
 
         try {
             await login(email, password);
-            // If successful, the code continues here:
-            navigate('/dashboard'); 
+            const token = localStorage.getItem('token');
+            
+            if (token) {
+                const decoded = jwtDecode<User>(token);
+                
+                if (decoded.roles.includes('ROLE_ADMIN')) {
+                    navigate('/admin');
+                } else {
+                    navigate('/customer');
+                }
+            } else {
+                navigate('/');
+            }
         } catch (err) {
-            // If the backend throws an error (401/403/500)
             setError('Invalid email or password. Please try again.');
         }
     };
@@ -49,7 +58,6 @@ export default function Login() {
                     alignItems: 'center',
                 }}
             >
-                {/* The Icon Header */}
                 <Avatar sx={{ m: 1, bgcolor: 'secondary.main' }}>
                     <LockOutlinedIcon />
                 </Avatar>
