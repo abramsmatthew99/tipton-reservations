@@ -5,10 +5,16 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
+import com.group1.tipton_reservations.model.User;
+
 import java.security.Key;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtUtils {
@@ -22,9 +28,27 @@ public class JwtUtils {
     public String generateJwtToken(Authentication authentication) {
         HotelUserPrincipal userPrincipal = (HotelUserPrincipal) authentication.getPrincipal();
 
+        List<String> roles = userPrincipal.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList());
+
         return Jwts.builder()
                 .setSubject((userPrincipal.getUsername()))
+                .claim("roles", roles)
                 .claim("userId", userPrincipal.getUser().getId())  // userId claim
+                .setIssuedAt(new Date())
+                .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(key(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String generateTokenFromUser(User user) {
+        List<String> roles = new ArrayList<>(user.getRoles());
+
+        return Jwts.builder()
+                .setSubject(user.getEmail())          
+                .claim("roles", roles)                
+                .claim("userId", user.getId())        
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
                 .signWith(key(), SignatureAlgorithm.HS256)

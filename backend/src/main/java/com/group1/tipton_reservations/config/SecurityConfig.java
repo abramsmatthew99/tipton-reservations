@@ -27,6 +27,8 @@ import com.group1.tipton_reservations.security.AuthEntryPointJwt;
 import com.group1.tipton_reservations.security.AuthTokenFilter;
 import com.group1.tipton_reservations.service.CustomUserDetailsService;
 
+import com.group1.tipton_reservations.security.OAuth2LoginSuccessHandler;
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -35,12 +37,14 @@ public class SecurityConfig {
     private final CustomUserDetailsService userService;
     private final AuthEntryPointJwt unauthorizedHandler; 
     private final AuthTokenFilter authTokenFilter;       
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     public SecurityConfig(CustomUserDetailsService userService, 
                           AuthEntryPointJwt unauthorizedHandler,      
-                          AuthTokenFilter authTokenFilter) {
+                          AuthTokenFilter authTokenFilter, OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler) {
         this.userService = userService;
         this.unauthorizedHandler = unauthorizedHandler;
         this.authTokenFilter = authTokenFilter;
+        this.oAuth2LoginSuccessHandler = oAuth2LoginSuccessHandler;
     }
 
     @Bean
@@ -69,6 +73,9 @@ public class SecurityConfig {
                 .requestMatchers("/payments/**").permitAll() // TODO: Restrict to authenticated users
                 .requestMatchers("/bookings/**").permitAll() // TODO: Restrict to authenticated users
                 .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .successHandler(oAuth2LoginSuccessHandler)
             );
 
         http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
@@ -118,51 +125,4 @@ public class SecurityConfig {
         return expressionHandler;
     }
 }
-// package com.group1.tipton_reservations.config;
 
-// import org.springframework.context.annotation.Bean;
-// import org.springframework.context.annotation.Configuration;
-// import org.springframework.security.authentication.AuthenticationManager;
-// import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-// import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-// import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-// import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-// import org.springframework.security.crypto.password.PasswordEncoder;
-// import org.springframework.security.web.SecurityFilterChain;
-
-// import com.group1.tipton_reservations.service.CustomUserDetailsService;
-
-// @Configuration
-// @EnableWebSecurity
-// public class SecurityConfig {
-
-//     private final CustomUserDetailsService userService;
-
-//     public SecurityConfig(CustomUserDetailsService service) {
-//         userService = service;
-//     }
-
-//     //Password Encoder -- goes here for some reason that I am unsure of exactly
-//     @Bean
-//     PasswordEncoder passwordEncoder() {
-//         return new BCryptPasswordEncoder();
-//     }
-
-//     @Bean
-//     AuthenticationManager authManager(HttpSecurity http, PasswordEncoder encoder) throws Exception {
-//         AuthenticationManagerBuilder auth = http.getSharedObject(AuthenticationManagerBuilder.class);
-//         //Chain all the services we need to authenticate (UserDetailsService and PasswordEncoder)
-//         auth.userDetailsService(userService).passwordEncoder(encoder);
-//         return auth.build();
-//     }
-
-//     @Bean 
-//     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-//         http
-//             .csrf(csrf -> csrf.disable())
-//             .authorizeHttpRequests(auth -> auth
-//                 .anyRequest().permitAll() //PERMIT HTTP FROM ANYWHERE
-//             );
-//         return http.build();
-//     }
-// }
