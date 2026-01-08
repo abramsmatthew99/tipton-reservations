@@ -32,3 +32,11 @@ export const setRoomStatus = async (status, id) => {
   );
   return data;
 };
+export const editRoom = async (formData) => {
+  const { data } = await axios.put(
+    `${baseURL}/rooms/${formData.roomId}`,
+    formData
+  );
+  console.log(formData);
+  return data;
+};

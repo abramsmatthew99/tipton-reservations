@@ -12,9 +12,11 @@ import {
     Card,
     CardContent,
     Alert,
-    Avatar
+    Avatar,
+    Divider
 } from '@mui/material';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import GoogleIcon from '@mui/icons-material/Google';
 
 
 export default function Login() {
@@ -111,6 +113,16 @@ export default function Login() {
                                 sx={{ mt: 3, mb: 2 }}
                             >
                                 Sign In
+                            </Button>
+                            <Divider sx={{ my: 2 }}>OR</Divider>
+                            <Button
+                                fullWidth
+                                variant="outlined"
+                                startIcon={<GoogleIcon />}
+                                href="http://localhost:8080/oauth2/authorization/google"
+                                sx={{ mb: 2, textTransform: 'none' }}
+                            >
+                                Sign in with Google
                             </Button>
                         </Box>
                     </CardContent>

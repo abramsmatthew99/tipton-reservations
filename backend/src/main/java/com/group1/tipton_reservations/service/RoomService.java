@@ -12,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 
 import com.group1.tipton_reservations.model.Booking;
 import com.group1.tipton_reservations.model.Room;
-import com.group1.tipton_reservations.model.enums.RoomStatus;
 import com.group1.tipton_reservations.repository.BookingRepository;
 import com.group1.tipton_reservations.repository.RoomRepository;
 
@@ -32,20 +31,13 @@ public class RoomService {
     }
 
     //Edit room entry
-    public void updateRoom(String id, String roomTypeId, String roomNumber, Integer floor, RoomStatus status) { 
+    public void updateRoom(String id, String roomTypeId, String roomNumber, Integer floor) { 
         Room r = roomRepository.findById(id).orElseThrow(() -> new RuntimeException("Room not found"));  
 
         r.setRoomTypeId(roomTypeId); 
         r.setRoomNumber(roomNumber); 
         r.setFloor(floor); 
-        r.setStatus(status); 
 
-        roomRepository.save(r); 
-    }
-    public void updateRoomStatus(String id, RoomStatus status) { 
-        Room r = roomRepository.findById(id).orElseThrow(() -> new RuntimeException("Room not found"));  
-
-        r.setStatus(status); 
         roomRepository.save(r); 
     }
 
@@ -83,7 +75,6 @@ public class RoomService {
         // find first available room (i.e. not booked and in status = "AVAILABLE")
         return allRoomsMatchingType.stream()
             .filter(room -> !bookedRoomIds.contains(room.getId()))  // excludes rooms already booked
-            .filter(room -> "AVAILABLE".equals(room.getStatus()))   // only includes available rooms
             .findFirst()
             .orElseThrow(() -> new RuntimeException(
                 "No rooms available for this type during the selected dates"

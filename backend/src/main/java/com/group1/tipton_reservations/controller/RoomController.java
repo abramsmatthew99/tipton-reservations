@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.group1.tipton_reservations.model.Room;
-import com.group1.tipton_reservations.model.enums.RoomStatus;
 import com.group1.tipton_reservations.service.RoomService;
 
 @RestController
@@ -79,8 +78,7 @@ public class RoomController {
                 id,
                 room.getRoomTypeId(),
                 room.getRoomNumber(),
-                room.getFloor(),
-                room.getStatus()
+                room.getFloor()
             );
             Room updatedRoom = roomService.findRoomById(id);
             return new ResponseEntity<>(updatedRoom, HttpStatus.OK);
@@ -93,15 +91,6 @@ public class RoomController {
                 .header("Message", "error updating room")
                 .build();
         }
-    }
-    @PatchMapping("/{id}/status") 
-    public ResponseEntity<Void> updateRoomStatus(@PathVariable String id, @RequestBody RoomStatus status) {
-        try {
-            roomService.updateRoomStatus(id, status);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.notFound().build();
-        } 
     }
 
     @DeleteMapping("/{id}")

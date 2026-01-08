@@ -6,6 +6,7 @@ import type { User } from '../types/models';
 interface AuthContextType {
     user: User | null;
     login: (email: string, password: string) => Promise<void>;
+    loginWithToken: (token: string) => void; 
     logout: () => void;
     isAuthenticated: boolean;
 }
@@ -39,13 +40,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(decoded);
     };
 
+    const loginWithToken = (token: string) => {
+        localStorage.setItem('token', token);
+        try {
+            const decoded = jwtDecode<User>(token);     
+            setUser(decoded);
+        } catch (error) {
+            console.error("Invalid token from OAuth", error);
+            localStorage.removeItem('token');
+        }
+    };
     const logout = () => {
         localStorage.removeItem('token');
         setUser(null);
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+        <AuthContext.Provider value={{ user, login, loginWithToken, logout, isAuthenticated: !!user }}>
             {!loading && children}
         </AuthContext.Provider>
     );

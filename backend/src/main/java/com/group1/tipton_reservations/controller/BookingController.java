@@ -3,6 +3,7 @@ package com.group1.tipton_reservations.controller;
 import com.group1.tipton_reservations.dto.booking.BookingResponse;
 import com.group1.tipton_reservations.dto.booking.CreateBookingRequest;
 import com.group1.tipton_reservations.dto.booking.ModifyBookingRequest;
+import com.group1.tipton_reservations.security.HotelUserPrincipal;
 import com.group1.tipton_reservations.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,12 +13,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
- * REST controller for booking endpoints
- *
- * TODO: add authentication/authorization to get userId from security context
+ * REST controller for booking endpoints.
  */
 @RestController
 @RequestMapping("/bookings")
@@ -31,14 +32,14 @@ public class BookingController {
      * Creates a new booking.
      *
      * @param request the booking creation request
+     * @param authentication the authenticated user (injected by Spring Security)
      * @return the created booking with 201 status
      */
     @PostMapping
-    public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody CreateBookingRequest request) {
-        // TODO: userId should come from Spring Security; revisit when auth is setup
-        // using hardcoded id for now
-        String userId = "test-user-123";
-
+    public ResponseEntity<BookingResponse> createBooking(
+            @Valid @RequestBody CreateBookingRequest request,
+            Authentication authentication) {
+        String userId = ((HotelUserPrincipal) authentication.getPrincipal()).getUser().getId();
         BookingResponse response = bookingService.createBooking(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -47,27 +48,28 @@ public class BookingController {
      * Retrieves a booking by its ID.
      *
      * @param id the booking ID
+     * @param authentication the authenticated user (injected by Spring Security)
      * @return the booking response
      */
     @GetMapping("/{id}")
-    public ResponseEntity<BookingResponse> getBookingById(@PathVariable String id) {
+    public ResponseEntity<BookingResponse> getBookingById(
+            @PathVariable String id,
+            Authentication authentication) {
         BookingResponse response = bookingService.getBookingById(id);
         return ResponseEntity.ok(response);
     }
 
     /**
      * Retrieves a booking by its confirmation number.
-     * TODO: Add authorization check - only allow user who owns booking or admin
      *
      * @param confirmationNumber the booking confirmation number
+     * @param authentication the authenticated user (injected by Spring Security)
      * @return the booking response
      */
     @GetMapping("/confirmation/{confirmationNumber}")
     public ResponseEntity<BookingResponse> getBookingByConfirmationNumber(
-            @PathVariable String confirmationNumber) {
-        // TODO: When auth is implemented, verify booking.userId matches authenticated user
-        // String userId = SecurityContextHolder.getContext().getAuthentication().getName();
-
+            @PathVariable String confirmationNumber,
+            Authentication authentication) {
         BookingResponse response = bookingService.getBookingByConfirmationNumber(confirmationNumber);
         return ResponseEntity.ok(response);
     }
@@ -77,15 +79,15 @@ public class BookingController {
      *
      * @param page the page number (default: 0)
      * @param size the page size (default: 10)
+     * @param authentication the authenticated user (injected by Spring Security)
      * @return page of booking responses for the authenticated user
      */
     @GetMapping("/user")
     public ResponseEntity<Page<BookingResponse>> getUserBookings(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        // TODO: userId should come from Spring Security; revisit when auth is setup
-        String userId = "test-user-123";
-
+            @RequestParam(defaultValue = "10") int size,
+            Authentication authentication) {
+        String userId = ((HotelUserPrincipal) authentication.getPrincipal()).getUser().getId();
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         Page<BookingResponse> bookings = bookingService.getUserBookings(userId, pageable);
 
@@ -97,16 +99,15 @@ public class BookingController {
      *
      * @param id the booking ID
      * @param request the modification request containing new dates
+     * @param authentication the authenticated user (injected by Spring Security)
      * @return the updated booking response
      */
     @PutMapping("/{id}")
     public ResponseEntity<BookingResponse> modifyBooking(
             @PathVariable String id,
-            @Valid @RequestBody ModifyBookingRequest request) {
-        // TODO: userId should come from Spring Security; revisit when auth is setup
-        String userId = "test-user-123";
-
-        BookingResponse response = bookingService.modifyBooking(id, request, userId);
+            @Valid @RequestBody ModifyBookingRequest request,
+            Authentication authentication) {
+        BookingResponse response = bookingService.modifyBooking(id, request);
         return ResponseEntity.ok(response);
     }
 
@@ -115,14 +116,14 @@ public class BookingController {
      * TODO: Currently changes the booking status to CANCELLED; consider deleting the entire booking (in service layer)
      *
      * @param id the booking ID
+     * @param authentication the authenticated user (injected by Spring Security)
      * @return the cancelled booking response
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<BookingResponse> cancelBooking(@PathVariable String id) {
-        // TODO: userId should come from Spring Security; revisit when auth is setup
-        String userId = "test-user-123";
-
-        BookingResponse response = bookingService.cancelBooking(id, userId);
+    public ResponseEntity<BookingResponse> cancelBooking(
+            @PathVariable String id,
+            Authentication authentication) {
+        BookingResponse response = bookingService.cancelBooking(id);
         return ResponseEntity.ok(response);
     }
 

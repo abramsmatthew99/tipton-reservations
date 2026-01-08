@@ -2,7 +2,6 @@ type RoomCreateFormState = {
   roomTypeId: string;
   roomNumber: string;
   floor: string;
-  status: string;
 };
 
 type RoomTypeOption = {
@@ -15,6 +14,8 @@ type RoomCreateFormProps = {
   setFormState: (nextState: RoomCreateFormState) => void;
   roomTypes: RoomTypeOption[];
   onSubmit: () => void;
+  title?: string;
+  submitLabel?: string;
 };
 
 function RoomCreateForm({
@@ -22,6 +23,8 @@ function RoomCreateForm({
   setFormState,
   roomTypes,
   onSubmit,
+  title = "Create Room",
+  submitLabel = "Create Room",
 }: RoomCreateFormProps) {
   return (
     <form
@@ -30,7 +33,7 @@ function RoomCreateForm({
         onSubmit();
       }}
     >
-      <h2>Create Room</h2>
+      <h2>{title}</h2>
 
       <label htmlFor="room-type-id">Room Type</label>
       <select
@@ -72,23 +75,9 @@ function RoomCreateForm({
             }
           />
         </div>
-        <div>
-          <label htmlFor="room-status">Status</label>
-          <select
-            id="room-status"
-            value={formState.status}
-            onChange={(event) =>
-              setFormState({ ...formState, status: event.target.value })
-            }
-          >
-            <option value="AVAILABLE">AVAILABLE</option>
-            <option value="OCCUPIED">OCCUPIED</option>
-            <option value="MAINTENANCE">MAINTENANCE</option>
-          </select>
-        </div>
       </div>
 
-      <button type="submit">Create Room</button>
+      <button type="submit">{submitLabel}</button>
     </form>
   );
 }

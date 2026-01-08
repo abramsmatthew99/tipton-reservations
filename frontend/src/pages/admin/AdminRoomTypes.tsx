@@ -4,6 +4,7 @@ import RoomTypeForm from "../../components/RoomTypeForm";
 import {
   createRoomType,
   deleteRoomType,
+  editRoomType,
   getRoomTypes,
 } from "../../apis/roomtype";
 import { getAmenities } from "../../apis/amenities";
@@ -64,6 +65,17 @@ const AdminRoomTypes = () => {
     amenityIds: [],
   });
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editRoomTypeId, setEditRoomTypeId] = useState<string | number | null>(
+    null
+  );
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    basePrice: "",
+    maxOccupancy: "",
+    imageUrl: dropdownData.imageOptions[0].url,
+    amenityIds: [],
+  });
 
   const [amenities, setAmenities] = useState<AmenityOption[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -79,6 +91,62 @@ const AdminRoomTypes = () => {
       prev.filter((roomType) => String(roomType.id) !== String(id))
     );
     setExpandedId((prev) => (prev === id ? null : prev));
+  };
+
+  const handleEditToggle = (roomType: RoomType, rowId: string | number) => {
+    if (editRoomTypeId === rowId) {
+      setEditRoomTypeId(null);
+      return;
+    }
+
+    setEditRoomTypeId(rowId);
+    setEditForm({
+      name: roomType.name ?? "",
+      description: roomType.description ?? "",
+      basePrice:
+        roomType.basePrice === undefined || roomType.basePrice === null
+          ? ""
+          : String(roomType.basePrice),
+      maxOccupancy:
+        roomType.maxOccupancy === undefined || roomType.maxOccupancy === null
+          ? ""
+          : String(roomType.maxOccupancy),
+      imageUrl:
+        roomType.imageUrl ||
+        roomType.imageUrls?.[0] ||
+        dropdownData.imageOptions[0].url,
+      amenityIds: (roomType.amenityIds ?? []).map((id) => String(id)),
+    });
+  };
+
+  const handleEditSubmit = async (roomTypeId: string | number) => {
+    const normalizeNumber = (value: string) =>
+      value.trim() === "" ? null : Number(value);
+
+    const payload = {
+      roomId: roomTypeId,
+      name: editForm.name,
+      description: editForm.description,
+      basePrice: normalizeNumber(editForm.basePrice),
+      maxOccupancy: normalizeNumber(editForm.maxOccupancy),
+      amenityIds: editForm.amenityIds,
+    };
+
+    const res = await editRoomType(payload);
+    setRoomTypes((prev) => {
+      if (Array.isArray(res)) {
+        return res;
+      }
+      if (!res) {
+        return prev;
+      }
+      return prev.map((roomType) =>
+        String(roomType.id) === String(roomTypeId)
+          ? { ...roomType, ...res }
+          : roomType
+      );
+    });
+    setEditRoomTypeId(null);
   };
 
   useEffect(() => {
@@ -166,6 +234,7 @@ const AdminRoomTypes = () => {
                   roomTypes.map((roomType, index) => {
                     const rowId = roomType.id ?? index;
                     const isExpanded = expandedId === rowId;
+                    const isEditing = editRoomTypeId === rowId;
                     const selectedAmenityIds = roomType.amenityIds ?? [];
                     return (
                       <Fragment key={rowId}>
@@ -321,7 +390,18 @@ const AdminRoomTypes = () => {
                                     display="flex"
                                     justifyContent="flex-end"
                                     pt={1}
+                                    gap={1}
                                   >
+                                    <Button
+                                      variant="outlined"
+                                      onClick={() =>
+                                        handleEditToggle(roomType, rowId)
+                                      }
+                                    >
+                                      {isEditing
+                                        ? "Cancel Edit"
+                                        : "Edit Room Type"}
+                                    </Button>
                                     <Button
                                       variant="outlined"
                                       color="error"
@@ -338,6 +418,24 @@ const AdminRoomTypes = () => {
                                       Delete Room Type
                                     </Button>
                                   </Box>
+                                  <Collapse in={isEditing} unmountOnExit>
+                                    <Box sx={{ pt: 2 }}>
+                                      <RoomTypeForm
+                                        title="Edit Room Type"
+                                        submitLabel="Update"
+                                        formIdPrefix={`edit-${rowId}`}
+                                        formState={editForm}
+                                        setFormState={setEditForm}
+                                        dropdownData={dropdownData}
+                                        amenitiesOptions={amenities}
+                                        onSubmit={() => {
+                                          if (roomType.id == null) return;
+                                          handleEditSubmit(roomType.id);
+                                        }}
+                                        showImageField={false}
+                                      />
+                                    </Box>
+                                  </Collapse>
                                 </Stack>
                               </Box>
                             </Collapse>

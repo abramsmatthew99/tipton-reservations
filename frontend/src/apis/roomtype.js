@@ -27,3 +27,25 @@ export const deleteRoomType = async (id) => {
   const { data } = await axios.delete(`${baseURL}/room-types/${id}`);
   return data;
 };
+
+export const getRoomTypesByDateAndGuests = async (
+  checkInDate,
+  checkOutDate,
+  guests
+) => {
+  const { data } = await axios.get(`${baseURL}/room-types/available`, {
+    params: { checkInDate, checkOutDate, guests },
+  });
+  const roomTypes = data.map((object) => object.roomType); //have to get roomType,
+  //TODO: We may need object.availableCount later.
+  console.log(roomTypes);
+  return roomTypes;
+};
+export const editRoomType = async (formData) => {
+  const { data } = await axios.put(
+    `${baseURL}/room-types/${formData.roomId}`,
+    formData
+  );
+  console.log(formData);
+  return data;
+};
