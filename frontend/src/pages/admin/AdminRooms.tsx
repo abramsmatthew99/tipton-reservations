@@ -163,7 +163,6 @@ const AdminRooms = () => {
                   <TableCell>Floor</TableCell>
                   <TableCell>Room Number</TableCell>
                   <TableCell>Room Type ID</TableCell>
-                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
