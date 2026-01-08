@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import RoomCreateForm from "../../components/RoomCreateForm";
 import { getRoomTypes } from "../../apis/roomtype";
-import { createRoom, getRooms, editRoom } from "../../apis/room";
+import { createRoom, getRooms, editRoom, deleteRoom } from "../../apis/room";
 import {
   Box,
   Button,
@@ -9,7 +9,6 @@ import {
   Divider,
   MenuItem,
   Paper,
-  Select,
   Stack,
   Table,
   TableBody,
@@ -17,6 +16,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from "@mui/material";
 
@@ -30,12 +30,16 @@ type Room = {
   floor: number | string | null;
   roomNumber: string | number;
   roomTypeId: string | number;
+  roomTypeName?: string;
 };
 
 const AdminRooms = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [editRoomId, setEditRoomId] = useState<string | number | null>(null);
+  const [roomTypeFilterId, setRoomTypeFilterId] = useState("all");
+  const [floorFilter, setFloorFilter] = useState("all");
+  const [roomNumberQuery, setRoomNumberQuery] = useState("");
 
   const [createRoomForm, setCreateRoomForm] = useState({
     roomTypeId: "",
@@ -48,6 +52,62 @@ const AdminRooms = () => {
     floor: "",
   });
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
+  const roomTypeById = useMemo(() => {
+    const lookup = new Map<string, string>();
+    roomTypes.forEach((roomType) => {
+      lookup.set(String(roomType.id), roomType.name);
+    });
+    return lookup;
+  }, [roomTypes]);
+  const availableFloors = useMemo(() => {
+    const floors = Array.from(
+      new Set(
+        rooms
+          .map((room) => room.floor)
+          .filter((floor) => floor !== null && floor !== undefined)
+          .map((floor) => String(floor))
+      )
+    );
+    return floors.sort(
+      (a, b) => Number.parseFloat(a) - Number.parseFloat(b)
+    );
+  }, [rooms]);
+  const filteredRooms = useMemo(() => {
+    const query = roomNumberQuery.trim().toLowerCase();
+    return rooms.filter((room) => {
+      if (
+        roomTypeFilterId !== "all" &&
+        String(room.roomTypeId) !== roomTypeFilterId
+      ) {
+        return false;
+      }
+      if (
+        floorFilter !== "all" &&
+        String(room.floor ?? "") !== floorFilter
+      ) {
+        return false;
+      }
+      if (
+        query &&
+        !String(room.roomNumber ?? "").toLowerCase().includes(query)
+      ) {
+        return false;
+      }
+      return true;
+    });
+  }, [rooms, roomTypeFilterId, floorFilter, roomNumberQuery]);
+  const hasRoomFilters =
+    roomTypeFilterId !== "all" ||
+    floorFilter !== "all" ||
+    roomNumberQuery.trim() !== "";
+  const attachRoomTypeName = useCallback(
+    (room: Room) => ({
+      ...room,
+      roomTypeName: roomTypeById.get(String(room.roomTypeId)) ?? "-",
+    }),
+    [roomTypeById]
+  );
+
   const handleEditRoom = async (roomId: string | number) => {
     const payload = {
       roomId,
@@ -57,12 +117,14 @@ const AdminRooms = () => {
     const res = await editRoom(payload);
     setRooms((prev) => {
       if (Array.isArray(res)) {
-        return res;
+        return res.map(attachRoomTypeName);
       }
       if (!res) {
         return prev;
       }
-      return prev.map((room) => (room.id === roomId ? { ...room, ...res } : room));
+      return prev.map((room) =>
+        room.id === roomId ? attachRoomTypeName({ ...room, ...res }) : room
+      );
     });
     setEditRoomId(null);
   };
@@ -73,7 +135,28 @@ const AdminRooms = () => {
       floor: createRoomForm.floor === "" ? null : Number(createRoomForm.floor),
     };
     const res = await createRoom(payload);
-    setRooms((prev) => (Array.isArray(res) ? res : [...prev, res]));
+    setRooms((prev) => {
+      const nextRooms = Array.isArray(res) ? res : [...prev, res];
+      return nextRooms.map(attachRoomTypeName);
+    });
+  };
+  const handleDeleteRoom = async (roomId: string | number) => {
+    const confirmed = window.confirm(
+      "Delete this room? This action cannot be undone."
+    );
+    if (!confirmed) {
+      return;
+    }
+    const res = await deleteRoom(roomId);
+    setRooms((prev) => {
+      if (Array.isArray(res)) {
+        return res.map(attachRoomTypeName);
+      }
+      return prev.filter((room) => room.id !== roomId);
+    });
+    if (editRoomId === roomId) {
+      setEditRoomId(null);
+    }
   };
 
   const handleEditToggle = (room: Room, roomKey: string | number) => {
@@ -98,8 +181,19 @@ const AdminRooms = () => {
         getRoomTypes(),
         getRooms(),
       ]);
+      const roomTypeLookup = new Map<string, string>(
+        roomTypesRes.map((roomType) => [
+          String(roomType.id),
+          roomType.name,
+        ])
+      );
       setRoomTypes(roomTypesRes);
-      setRooms(roomRes);
+      setRooms(
+        roomRes.map((room) => ({
+          ...room,
+          roomTypeName: roomTypeLookup.get(String(room.roomTypeId)) ?? "-",
+        }))
+      );
     };
     getStuff();
   }, []);
@@ -110,6 +204,11 @@ const AdminRooms = () => {
       prev.roomTypeId ? prev : { ...prev, roomTypeId: String(roomTypes[0].id) }
     );
   }, [roomTypes, rooms]);
+
+  useEffect(() => {
+    if (roomTypes.length === 0) return;
+    setRooms((prev) => prev.map(attachRoomTypeName));
+  }, [roomTypes, attachRoomTypeName]);
   return (
     <Stack spacing={3}>
       <Paper elevation={2} sx={{ p: { xs: 2, md: 3 } }}>
@@ -156,44 +255,121 @@ const AdminRooms = () => {
             </Typography>
           </Box>
           <Divider />
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            alignItems={{ xs: "stretch", md: "center" }}
+          >
+            <TextField
+              select
+              size="small"
+              label="Room Type"
+              value={roomTypeFilterId}
+              onChange={(event) => setRoomTypeFilterId(event.target.value)}
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="all">All room types</MenuItem>
+              {roomTypes.map((roomType) => (
+                <MenuItem key={roomType.id} value={String(roomType.id)}>
+                  {roomType.name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              size="small"
+              label="Floor"
+              value={floorFilter}
+              onChange={(event) => setFloorFilter(event.target.value)}
+              sx={{ minWidth: 140 }}
+            >
+              <MenuItem value="all">All floors</MenuItem>
+              {availableFloors.map((floor) => (
+                <MenuItem key={floor} value={floor}>
+                  {floor}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              size="small"
+              label="Room Number"
+              placeholder="Search room number"
+              value={roomNumberQuery}
+              onChange={(event) => setRoomNumberQuery(event.target.value)}
+              sx={{ minWidth: 200 }}
+            />
+            <Button
+              variant="text"
+              disabled={!hasRoomFilters}
+              onClick={() => {
+                setRoomTypeFilterId("all");
+                setFloorFilter("all");
+                setRoomNumberQuery("");
+              }}
+            >
+              Clear
+            </Button>
+          </Stack>
           <TableContainer>
             <Table size="small">
               <TableHead>
                 <TableRow>
                   <TableCell>Floor</TableCell>
                   <TableCell>Room Number</TableCell>
-                  <TableCell>Room Type ID</TableCell>
+                  <TableCell>Room Type</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {rooms.length === 0 ? (
+                {filteredRooms.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4}>
                       <Typography variant="body2" color="text.secondary">
-                        No rooms found.
+                        {rooms.length === 0
+                          ? "No rooms found."
+                          : "No rooms match the current filters."}
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rooms.map((room, index) => {
+                  filteredRooms.map((room, index) => {
                     const roomKey = room.id ?? `row-${index}`;
                     const isEditing = editRoomId === roomKey;
+                    const canDelete = room.id !== null && room.id !== undefined;
 
                     return (
                       <Fragment key={roomKey}>
                         <TableRow key={roomKey} hover>
                           <TableCell>{room.floor ?? "-"}</TableCell>
                           <TableCell>{room.roomNumber}</TableCell>
-                          <TableCell>{room.roomTypeId}</TableCell>
+                          <TableCell>{room.roomTypeName ?? "-"}</TableCell>
                           <TableCell align="right">
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              onClick={() => handleEditToggle(room, roomKey)}
+                            <Stack
+                              direction="row"
+                              spacing={1}
+                              justifyContent="flex-end"
                             >
-                              {isEditing ? "Cancel" : "Edit"}
-                            </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => handleEditToggle(room, roomKey)}
+                              >
+                                {isEditing ? "Cancel" : "Edit"}
+                              </Button>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                disabled={!canDelete}
+                                onClick={() =>
+                                  room.id !== undefined &&
+                                  room.id !== null &&
+                                  handleDeleteRoom(room.id)
+                                }
+                              >
+                                Delete
+                              </Button>
+                            </Stack>
                           </TableCell>
                         </TableRow>
                         <TableRow key={`${roomKey}-edit`}>

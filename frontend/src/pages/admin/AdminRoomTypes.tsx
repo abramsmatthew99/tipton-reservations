@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import RoomTypeForm from "../../components/RoomTypeForm";
 import {
@@ -15,6 +15,7 @@ import {
   Collapse,
   Divider,
   IconButton,
+  MenuItem,
   Paper,
   Stack,
   Table,
@@ -23,6 +24,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Typography,
 } from "@mui/material";
 import * as MuiIcons from "@mui/icons-material";
@@ -80,6 +82,32 @@ const AdminRoomTypes = () => {
   const [amenities, setAmenities] = useState<AmenityOption[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [expandedId, setExpandedId] = useState<string | number | null>(null);
+  const [roomTypeFilterId, setRoomTypeFilterId] = useState("all");
+  const [occupancyFilter, setOccupancyFilter] = useState("all");
+  const occupancyOptions = useMemo(
+    () => Array.from({ length: 12 }, (_, index) => String(index + 1)),
+    []
+  );
+  const filteredRoomTypes = useMemo(() => {
+    return roomTypes.filter((roomType) => {
+      if (
+        roomTypeFilterId !== "all" &&
+        String(roomType.id) !== roomTypeFilterId
+      ) {
+        return false;
+      }
+      if (occupancyFilter === "all") {
+        return true;
+      }
+      const occupancyValue =
+        roomType.maxOccupancy === null || roomType.maxOccupancy === undefined
+          ? ""
+          : String(roomType.maxOccupancy);
+      return occupancyValue === occupancyFilter;
+    });
+  }, [roomTypes, roomTypeFilterId, occupancyFilter]);
+  const hasRoomTypeFilters =
+    roomTypeFilterId !== "all" || occupancyFilter !== "all";
 
   const handleSubmit = async () => {
     const res = await createRoomType(createForm);
@@ -211,6 +239,52 @@ const AdminRoomTypes = () => {
             </Typography>
           </Box>
           <Divider />
+          <Stack
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            alignItems={{ xs: "stretch", md: "center" }}
+          >
+            <TextField
+              select
+              size="small"
+              label="Room Type"
+              value={roomTypeFilterId}
+              onChange={(event) => setRoomTypeFilterId(event.target.value)}
+              sx={{ minWidth: 220 }}
+            >
+              <MenuItem value="all">All room types</MenuItem>
+              {roomTypes.map((roomType) => (
+                <MenuItem key={roomType.id} value={String(roomType.id)}>
+                  {roomType.name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              size="small"
+              label="Max Occupancy"
+              value={occupancyFilter}
+              onChange={(event) => setOccupancyFilter(event.target.value)}
+              sx={{ minWidth: 180 }}
+            >
+              <MenuItem value="all">All occupancies</MenuItem>
+              {occupancyOptions.map((value) => (
+                <MenuItem key={value} value={value}>
+                  {value}
+                </MenuItem>
+              ))}
+            </TextField>
+            <Button
+              variant="text"
+              disabled={!hasRoomTypeFilters}
+              onClick={() => {
+                setRoomTypeFilterId("all");
+                setOccupancyFilter("all");
+              }}
+            >
+              Clear
+            </Button>
+          </Stack>
           <TableContainer>
             <Table size="small">
               <TableHead>
@@ -222,16 +296,18 @@ const AdminRoomTypes = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {roomTypes.length === 0 ? (
+                {filteredRoomTypes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4}>
                       <Typography variant="body2" color="text.secondary">
-                        No room types found.
+                        {roomTypes.length === 0
+                          ? "No room types found."
+                          : "No room types match the current filters."}
                       </Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  roomTypes.map((roomType, index) => {
+                  filteredRoomTypes.map((roomType, index) => {
                     const rowId = roomType.id ?? index;
                     const isExpanded = expandedId === rowId;
                     const isEditing = editRoomTypeId === rowId;

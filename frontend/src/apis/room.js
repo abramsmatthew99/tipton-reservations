@@ -40,3 +40,7 @@ export const editRoom = async (formData) => {
   console.log(formData);
   return data;
 };
+export const deleteRoom = async (id) => {
+  const { data } = await axios.delete(`${baseURL}/rooms/${id}`);
+  return data;
+};
