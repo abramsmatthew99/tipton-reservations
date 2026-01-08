@@ -46,6 +46,7 @@ type RoomTypeFormProps = {
   dropdownData: DropdownData;
   amenitiesOptions?: AmenityOption[];
   onSubmit: () => void;
+  showImageField?: boolean;
 };
 
 function RoomTypeForm({
@@ -57,6 +58,7 @@ function RoomTypeForm({
   dropdownData,
   amenitiesOptions,
   onSubmit,
+  showImageField = true,
 }: RoomTypeFormProps) {
   const [amenitySelectValue, setAmenitySelectValue] = useState("");
   const selectedAmenityIds = formState.amenityIds ?? [];
@@ -135,29 +137,31 @@ function RoomTypeForm({
           </FormControl>
         </Stack>
 
-        <FormControl fullWidth>
-          <InputLabel id={`${formIdPrefix}-image-url-label`}>
-            Image Url
-          </InputLabel>
-          <Select
-            id={`${formIdPrefix}-image-url`}
-            labelId={`${formIdPrefix}-image-url-label`}
-            label="Image Url"
-            value={formState.imageUrl}
-            onChange={(event) =>
-              setFormState({
-                ...formState,
-                imageUrl: String(event.target.value),
-              })
-            }
-          >
-            {dropdownData.imageOptions.map((option) => (
-              <MenuItem key={option.id} value={option.url}>
-                {option.url}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        {showImageField && (
+          <FormControl fullWidth>
+            <InputLabel id={`${formIdPrefix}-image-url-label`}>
+              Image Url
+            </InputLabel>
+            <Select
+              id={`${formIdPrefix}-image-url`}
+              labelId={`${formIdPrefix}-image-url-label`}
+              label="Image Url"
+              value={formState.imageUrl}
+              onChange={(event) =>
+                setFormState({
+                  ...formState,
+                  imageUrl: String(event.target.value),
+                })
+              }
+            >
+              {dropdownData.imageOptions.map((option) => (
+                <MenuItem key={option.id} value={option.url}>
+                  {option.url}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
 
         {amenitiesOptions && amenitiesOptions.length > 0 && (
           <Box>

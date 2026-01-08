@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import RoomCreateForm from "../../components/RoomCreateForm";
 import { getRoomTypes } from "../../apis/roomtype";
-import { createRoom, getRooms } from "../../apis/room";
+import { createRoom, getRooms, editRoom } from "../../apis/room";
 import {
   Box,
   Button,
@@ -35,13 +35,37 @@ type Room = {
 const AdminRooms = () => {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [editRoomId, setEditRoomId] = useState<string | number | null>(null);
 
   const [createRoomForm, setCreateRoomForm] = useState({
     roomTypeId: "",
     roomNumber: "",
     floor: "",
   });
+  const [editRoomForm, setEditRoomForm] = useState({
+    roomTypeId: "",
+    roomNumber: "",
+    floor: "",
+  });
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
+  const handleEditRoom = async (roomId: string | number) => {
+    const payload = {
+      roomId,
+      ...editRoomForm,
+      floor: editRoomForm.floor === "" ? null : Number(editRoomForm.floor),
+    };
+    const res = await editRoom(payload);
+    setRooms((prev) => {
+      if (Array.isArray(res)) {
+        return res;
+      }
+      if (!res) {
+        return prev;
+      }
+      return prev.map((room) => (room.id === roomId ? { ...room, ...res } : room));
+    });
+    setEditRoomId(null);
+  };
 
   const handleCreateRoom = async () => {
     const payload = {
@@ -50,6 +74,23 @@ const AdminRooms = () => {
     };
     const res = await createRoom(payload);
     setRooms((prev) => (Array.isArray(res) ? res : [...prev, res]));
+  };
+
+  const handleEditToggle = (room: Room, roomKey: string | number) => {
+    if (editRoomId === roomKey) {
+      setEditRoomId(null);
+      return;
+    }
+
+    setEditRoomId(roomKey);
+    setEditRoomForm({
+      roomTypeId: String(room.roomTypeId ?? roomTypes[0]?.id ?? ""),
+      roomNumber: room.roomNumber ? String(room.roomNumber) : "",
+      floor:
+        room.floor === null || room.floor === undefined
+          ? ""
+          : String(room.floor),
+    });
   };
   useEffect(() => {
     const getStuff = async () => {
@@ -122,6 +163,7 @@ const AdminRooms = () => {
                   <TableCell>Floor</TableCell>
                   <TableCell>Room Number</TableCell>
                   <TableCell>Room Type ID</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -134,13 +176,45 @@ const AdminRooms = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rooms.map((room, index) => (
-                    <TableRow key={room.id ?? index} hover>
-                      <TableCell>{room.floor ?? "-"}</TableCell>
-                      <TableCell>{room.roomNumber}</TableCell>
-                      <TableCell>{room.roomTypeId}</TableCell>
-                    </TableRow>
-                  ))
+                  rooms.map((room, index) => {
+                    const roomKey = room.id ?? `row-${index}`;
+                    const isEditing = editRoomId === roomKey;
+
+                    return (
+                      <Fragment key={roomKey}>
+                        <TableRow key={roomKey} hover>
+                          <TableCell>{room.floor ?? "-"}</TableCell>
+                          <TableCell>{room.roomNumber}</TableCell>
+                          <TableCell>{room.roomTypeId}</TableCell>
+                          <TableCell align="right">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => handleEditToggle(room, roomKey)}
+                            >
+                              {isEditing ? "Cancel" : "Edit"}
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow key={`${roomKey}-edit`}>
+                          <TableCell colSpan={4} sx={{ p: 0, border: 0 }}>
+                            <Collapse in={isEditing} unmountOnExit>
+                              <Box sx={{ p: 2 }}>
+                                <RoomCreateForm
+                                  formState={editRoomForm}
+                                  setFormState={setEditRoomForm}
+                                  roomTypes={roomTypes}
+                                  onSubmit={() => handleEditRoom(roomKey)}
+                                  title="Edit Room"
+                                  submitLabel="Update Room"
+                                />
+                              </Box>
+                            </Collapse>
+                          </TableCell>
+                        </TableRow>
+                      </Fragment>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

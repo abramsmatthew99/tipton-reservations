@@ -41,3 +41,11 @@ export const getRoomTypesByDateAndGuests = async (
   console.log(roomTypes);
   return roomTypes;
 };
+export const editRoomType = async (formData) => {
+  const { data } = await axios.put(
+    `${baseURL}/room-types/${formData.roomId}`,
+    formData
+  );
+  console.log(formData);
+  return data;
+};
