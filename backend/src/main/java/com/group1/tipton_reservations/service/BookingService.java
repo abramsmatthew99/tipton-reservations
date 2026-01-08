@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -21,6 +22,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.UUID;
 
 
@@ -49,7 +51,15 @@ public class BookingService {
         validateDateRange(request.getCheckInDate(), request.getCheckOutDate());
 
         // validate user exists and is active
-        User user = userService.findUserById(userId);
+        User user;
+        try {
+            user = userService.findUserById(userId);
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "User not found with ID: " + userId
+            );
+        }
         if (!user.isActive()) {
             throw new ResponseStatusException(
                     HttpStatus.FORBIDDEN,
@@ -58,7 +68,15 @@ public class BookingService {
         }
 
         // validate room type exists
-        RoomType roomType = roomTypeService.findRoomTypeById(request.getRoomTypeId());
+        RoomType roomType;
+        try {
+            roomType = roomTypeService.findRoomTypeById(request.getRoomTypeId());
+        } catch (NoSuchElementException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Room type not found with ID: " + request.getRoomTypeId()
+            );
+        }
 
         // validate number of guests is not greater than room capacity
         if (request.getNumberOfGuests() > roomType.getMaxOccupancy()) {
@@ -106,11 +124,13 @@ public class BookingService {
 
     /**
      * Retrieves a booking by its ID.
+     * Requires user to own the booking or be an admin
      *
      * @param bookingId the booking ID
      * @return the booking response
-     * @throws ResponseStatusException if booking not found
+     * @throws ResponseStatusException if booking not found or unauthorized
      */
+    @PreAuthorize("@bookingSecurity.isOwner(#bookingId)")
     public BookingResponse getBookingById(String bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -123,12 +143,13 @@ public class BookingService {
 
     /**
      * Retrieves a booking by its confirmation number.
-     * TODO: Add authorization check - verify booking belongs to authenticated user
+     * Requires user to own the booking or be an admin
      *
      * @param confirmationNumber the booking confirmation number
      * @return the booking response
-     * @throws ResponseStatusException if booking not found
+     * @throws ResponseStatusException if booking not found or unauthorized
      */
+    @PreAuthorize("@bookingSecurity.isOwnerByConfirmation(#confirmationNumber)")
     public BookingResponse getBookingByConfirmationNumber(String confirmationNumber) {
         Booking booking = bookingRepository.findByConfirmationNumber(confirmationNumber)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -154,28 +175,21 @@ public class BookingService {
     /**
      * Modifies an existing booking's dates.
      * Validates new dates and checks availability for the new date range.
+     * Requires user to own the booking or be an admin
      *
      * @param bookingId the booking ID
      * @param request the modification request containing new dates
-     * @param userId the authenticated user's ID (for authorization)
      * @return the updated booking response
      * @throws ResponseStatusException if booking not found, dates invalid, or room unavailable
      */
-    public BookingResponse modifyBooking(String bookingId, ModifyBookingRequest request, String userId) {
+    @PreAuthorize("@bookingSecurity.isOwner(#bookingId)")
+    public BookingResponse modifyBooking(String bookingId, ModifyBookingRequest request) {
         // find existing booking
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Booking not found with ID: " + bookingId
                 ));
-
-        // verify user owns this booking
-        if (!booking.getUserId().equals(userId)) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "You are not authorized to modify this booking"
-            );
-        }
 
         // verify booking is confirmed (only confirmed bookings can be modified)
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
@@ -246,27 +260,20 @@ public class BookingService {
 
     /**
      * Cancels a booking.
+     * Requires user to own the booking or be an admin
      *
      * @param bookingId the booking ID
-     * @param userId the authenticated user's ID (for authorization)
      * @return the cancelled booking response
      * @throws ResponseStatusException if booking not found or already cancelled
      */
-    public BookingResponse cancelBooking(String bookingId, String userId) {
+    @PreAuthorize("@bookingSecurity.isOwner(#bookingId)")
+    public BookingResponse cancelBooking(String bookingId) {
         // find existing booking
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Booking not found with ID: " + bookingId
                 ));
-
-        // verify user owns this booking
-        if (!booking.getUserId().equals(userId)) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "You are not authorized to cancel this booking"
-            );
-        }
 
         // verify booking is not already cancelled
         if (booking.getStatus() == BookingStatus.CANCELLED) {
