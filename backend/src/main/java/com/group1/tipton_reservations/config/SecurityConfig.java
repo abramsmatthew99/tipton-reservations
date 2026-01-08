@@ -60,6 +60,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/rooms/**", "/room-types/**").permitAll()
+                .requestMatchers("/amenities/**").permitAll()
+
                 //TODO: Uncomment out when frontend auth is implemented
                 // .requestMatchers(HttpMethod.GET, "/rooms/**", "/room-types/**").permitAll()
                 // .requestMatchers(HttpMethod.POST, "/rooms/**", "/room-types/**").hasRole("ADMIN")
