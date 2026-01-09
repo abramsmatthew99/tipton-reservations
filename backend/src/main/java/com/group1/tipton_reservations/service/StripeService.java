@@ -1,5 +1,6 @@
 package com.group1.tipton_reservations.service;
 
+import com.group1.tipton_reservations.model.Booking;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
@@ -32,13 +33,15 @@ public class StripeService {
      * @return The PaymentIntent client secret
      * @throws StripeException if the payment intent creation fails
      */
-    public String createPaymentIntent(BigDecimal amount, String currency) throws StripeException {
+    public PaymentIntent createPaymentIntent(Booking booking, String currency) throws StripeException {
         // Convert dollars to cents (Stripe expects amounts in smallest currency unit)
-        long amountInCents = amount.multiply(new BigDecimal("100")).longValue();
+        long amountInCents = booking.getTotalPrice().multiply(new BigDecimal("100")).longValue();
 
         PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                 .setAmount(amountInCents)
                 .setCurrency(currency.toLowerCase())
+                .putMetadata("bookingId", booking.getId())
+                .putMetadata("confirmationNumber", booking.getConfirmationNumber())
                 .setAutomaticPaymentMethods(
                     PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                         .setEnabled(true)
@@ -46,8 +49,7 @@ public class StripeService {
                 )
                 .build();
 
-        PaymentIntent paymentIntent = PaymentIntent.create(params);
-        return paymentIntent.getClientSecret();
+        return PaymentIntent.create(params);
     }
 
     /**

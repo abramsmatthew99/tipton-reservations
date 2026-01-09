@@ -1,4 +1,3 @@
-import React from "react";
 import {
   Card,
   CardMedia,
@@ -14,6 +13,7 @@ import { Person } from "@mui/icons-material";
 import { resolveAmenityIconName } from "../utils/amenityIcons";
 
 type RoomProps = {
+  roomTypeId: string;
   name: string;
   basePrice: string | number;
   maxOccupancy: string | number;
@@ -25,6 +25,7 @@ type RoomProps = {
     iconCode?: string;
     description?: string;
   }>;
+  onBookNow?: () => void;
 };
 
 function CustomerRoomCard({
@@ -34,6 +35,7 @@ function CustomerRoomCard({
   imageUrls,
   description,
   amenities,
+  onBookNow,
 }: RoomProps) {
   return (
     <Card
@@ -140,6 +142,8 @@ function CustomerRoomCard({
         >
           <Button
             variant="contained"
+            onClick={onBookNow}
+            disabled={!onBookNow}
             sx={{
               backgroundColor: "#6366f1",
               textTransform: "none",
@@ -150,9 +154,12 @@ function CustomerRoomCard({
               "&:hover": {
                 backgroundColor: "#4f46e5",
               },
+              "&:disabled": {
+                backgroundColor: "#9ca3af",
+              },
             }}
           >
-            Book Now
+            {onBookNow ? "Book Now" : "Select Dates First"}
           </Button>
         </Box>
       </CardContent>

@@ -1,11 +1,11 @@
 import { Stack, Typography } from "@mui/material";
 import CustomerDateFilter from "./CustomerDateFilter";
 import CustomerRoomCard from "./CustomerRoomCard";
-import { useSearchParams } from "react-router";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getAmenities } from "../apis/amenities";
 import { getRoomTypes, getRoomTypesByDateAndGuests } from "../apis/roomtype";
-import axios from "axios";
+import type { BookingFormState } from "../types/booking";
 type Amenity = {
   id: string | number;
   name?: string;
@@ -29,6 +29,7 @@ function SearchPage() {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const checkInDate = searchParams.get("checkInDate") || "";
   const checkOutDate = searchParams.get("checkOutDate") || "";
@@ -46,6 +47,41 @@ function SearchPage() {
       checkInDate: checkIn,
       checkOutDate: checkOut,
       guests: String(guestCount),
+    });
+  };
+
+  // Calculate number of nights between two dates
+  const calculateNights = (checkIn: string, checkOut: string): number => {
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+    const diffTime = end.getTime() - start.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // Handle "Book Now" click - navigate to booking confirmation page
+  const handleBookNow = (roomType: RoomType) => {
+    if (!checkInDate || !checkOutDate) return;
+
+    const basePrice = Number(roomType.basePrice) || 0;
+    const numberOfNights = calculateNights(checkInDate, checkOutDate);
+    const totalPrice = basePrice * numberOfNights;
+    const imageList = roomType.imageUrls ?? (roomType.imageUrl ? [roomType.imageUrl] : []);
+
+    const bookingData: BookingFormState = {
+      roomTypeId: String(roomType.id),
+      roomTypeName: roomType.name,
+      roomTypeImage: imageList[0],
+      roomTypeDescription: roomType.description,
+      basePrice: basePrice,
+      checkInDate: checkInDate,
+      checkOutDate: checkOutDate,
+      numberOfGuests: guests,
+      numberOfNights: numberOfNights,
+      totalPrice: totalPrice,
+    };
+
+    navigate("/booking/confirm", {
+      state: { bookingData, searchParams: searchParams.toString() },
     });
   };
 
@@ -93,12 +129,16 @@ function SearchPage() {
             return (
               <CustomerRoomCard
                 key={roomType.id ?? index}
+                roomTypeId={String(roomType.id ?? index)}
                 name={roomType.name}
                 basePrice={roomType.basePrice ?? "0"}
                 maxOccupancy={roomType.maxOccupancy ?? 1}
                 imageUrls={imageList[0] ?? undefined}
                 description={roomType.description ?? ""}
                 amenities={roomType?.amenities ?? []}
+                onBookNow={
+                  searchCriteria ? () => handleBookNow(roomType) : undefined
+                }
               />
             );
           })

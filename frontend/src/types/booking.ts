@@ -3,7 +3,12 @@
 /**
  * Booking status enum matching backend BookingStatus
  */
-export type BookingStatus = "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED";
+export type BookingStatus =
+  | "PENDING"
+  | "CONFIRMED"
+  | "CANCELLED"
+  | "COMPLETED"
+  | "VOIDED";
 
 /**
  * Complete booking response from backend
@@ -15,6 +20,8 @@ export type BookingResponse = {
   userId: string;
   roomId: string;
   roomTypeId: string;
+  roomTypeName: string; // Human-readable room type name (e.g., "Standard Room", "Deluxe Suite")
+  roomNumber: string; // Room number (e.g., "101", "205")
   checkInDate: string; // ISO date string
   checkOutDate: string; // ISO date string
   numberOfGuests: number;

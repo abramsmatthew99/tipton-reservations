@@ -63,15 +63,10 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) 
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
-                .requestMatchers("/rooms/**", "/room-types/**").permitAll()
-                //TODO: Uncomment out when frontend auth is implemented
-                // .requestMatchers(HttpMethod.GET, "/rooms/**", "/room-types/**").permitAll()
-                // .requestMatchers(HttpMethod.POST, "/rooms/**", "/room-types/**").hasRole("ADMIN")
-                // .requestMatchers(HttpMethod.PUT, "/rooms/**", "/room-types/**").hasRole("ADMIN")
-                // .requestMatchers(HttpMethod.PATCH, "/rooms/**", "/room-types/**").hasRole("ADMIN")
-                // .requestMatchers(HttpMethod.DELETE, "/rooms/**", "/room-types/**").hasRole("ADMIN")
-                .requestMatchers("/payments/**").permitAll() // TODO: Restrict to authenticated users
-                .requestMatchers("/bookings/**").permitAll() // TODO: Restrict to authenticated users
+                .requestMatchers("/room-types/**").permitAll()
+                .requestMatchers("/amenities/**").permitAll()
+                .requestMatchers("/payments/**").authenticated() // Requires auth for payment processing
+                .requestMatchers("/bookings/**").authenticated() // Requires auth for booking operations
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2

@@ -29,6 +29,12 @@ public class BookingResponse {
     // Room type ID
     private String roomTypeId;
 
+    // Room type name
+    private String roomTypeName;
+
+    // Room number
+    private String roomNumber;
+
     // Check-in date
     private LocalDate checkInDate;
 

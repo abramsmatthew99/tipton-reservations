@@ -24,6 +24,7 @@ function BookingCard({ booking }: BookingCardProps) {
       PENDING: { color: "warning" as const, label: "Pending" },
       CANCELLED: { color: "error" as const, label: "Cancelled" },
       COMPLETED: { color: "info" as const, label: "Completed" },
+      VOIDED: { color: "default" as const, label: "Voided" },
     };
 
     const config = statusConfig[status];
@@ -35,14 +36,6 @@ function BookingCard({ booking }: BookingCardProps) {
         sx={{ fontWeight: 500 }}
       />
     );
-  };
-
-  // Format room type name (convert "double-room" to "Double Room")
-  const formatRoomType = (roomTypeId: string) => {
-    return roomTypeId
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
   };
 
   const handleViewDetails = () => {
@@ -89,10 +82,10 @@ function BookingCard({ booking }: BookingCardProps) {
         >
           <Box>
             <Typography variant='h6' component='div' sx={{ fontWeight: 600 }}>
-              {formatRoomType(booking.roomTypeId)}
+              {booking.roomTypeName}
             </Typography>
             <Typography variant='body2' color='text.secondary'>
-              Room {booking.roomId.split("-")[1] || booking.roomId}
+              Room {booking.roomNumber}
             </Typography>
           </Box>
           {getStatusChip(booking.status)}
@@ -188,19 +181,6 @@ function BookingCard({ booking }: BookingCardProps) {
             >
               View Details
             </Button>
-            {booking.status === "CONFIRMED" && (
-              <Button
-                variant='outlined'
-                color='error'
-                size='medium'
-                onClick={() => {
-                  // TODO: Implement cancel booking functionality
-                  console.log("Cancel booking:", booking.id);
-                }}
-              >
-                Cancel Booking
-              </Button>
-            )}
           </Stack>
         </Box>
       </Box>

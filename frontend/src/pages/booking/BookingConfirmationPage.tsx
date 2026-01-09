@@ -1,7 +1,16 @@
-import { Alert, Card, CardContent, Container, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Card,
+  CardContent,
+  CircularProgress,
+  Container,
+  Typography,
+} from "@mui/material";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { formatDate } from "../../util/helper";
-import type { BookingFormState } from "../../types/booking";
+import type { BookingFormState, BookingStatus } from "../../types/booking";
+import { useGetBookingByConfirmationNumberQuery } from "../../store/api/bookingApi";
 
 // Hotel check-in/check-out policy times
 const CHECK_IN_TIME = "3:00 PM";
@@ -25,17 +34,55 @@ function BookingConfirmationPage() {
     | string
     | undefined;
 
-  // TODO: If no state data, fetch from backend using confirmationNumber
-  // useEffect(() => {
-  //   if (!stateData && confirmationNumber) {
-  //     fetch(`http://localhost:8080/bookings/confirmation/${confirmationNumber}`)
-  //       .then(res => res.json())
-  //       .then(data => setBookingData(data));
-  //   }
-  // }, [confirmationNumber, stateData]);
+  const {
+    data: fetchedBooking,
+    isLoading,
+    isError,
+  } = useGetBookingByConfirmationNumberQuery(confirmationNumber!, {
+    skip: !!stateData || !confirmationNumber,
+  });
 
-  // For now, if no state data, show error (will implement API fetch later)
-  if (!stateData) {
+  const formatRoomTypeId = (roomTypeId: string) => {
+    return roomTypeId
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  const displayData = stateData
+    ? {
+        roomTypeName: stateData.roomTypeName,
+        checkInDate: stateData.checkInDate,
+        checkOutDate: stateData.checkOutDate,
+        numberOfGuests: stateData.numberOfGuests,
+        totalPrice: stateData.totalPrice,
+        status: "CONFIRMED" as BookingStatus,
+      }
+    : fetchedBooking
+    ? {
+        roomTypeName: formatRoomTypeId(fetchedBooking.roomTypeId),
+        checkInDate: fetchedBooking.checkInDate,
+        checkOutDate: fetchedBooking.checkOutDate,
+        numberOfGuests: fetchedBooking.numberOfGuests,
+        totalPrice: Number(fetchedBooking.totalPrice),
+        status: fetchedBooking.status,
+      }
+    : undefined;
+
+  if (!stateData && isLoading) {
+    return (
+      <Container maxWidth='md' sx={{ py: 4 }}>
+        <Box sx={{ textAlign: "center" }}>
+          <CircularProgress />
+          <Typography variant='body1' sx={{ mt: 2 }}>
+            Loading booking details...
+          </Typography>
+        </Box>
+      </Container>
+    );
+  }
+
+  if (!displayData || isError) {
     return (
       <Container maxWidth='md' sx={{ py: 4 }}>
         <Alert severity='error'>
@@ -54,16 +101,50 @@ function BookingConfirmationPage() {
 
   const displayConfirmationNumber =
     stateConfirmationNumber || confirmationNumber || "TIP-DEMO123";
+  const statusConfig: Record<
+    BookingStatus,
+    { severity: "success" | "warning" | "error" | "info"; title: string; message: string }
+  > = {
+    CONFIRMED: {
+      severity: "success",
+      title: "Booking Confirmed!",
+      message: "A confirmation email has been sent to your email address.",
+    },
+    PENDING: {
+      severity: "info",
+      title: "Booking Pending",
+      message:
+        "Your booking is pending payment confirmation. Please check your email or payment status.",
+    },
+    CANCELLED: {
+      severity: "warning",
+      title: "Booking Cancelled",
+      message:
+        "This booking has been cancelled. If you believe this is a mistake, please contact support.",
+    },
+    VOIDED: {
+      severity: "warning",
+      title: "Booking Voided",
+      message:
+        "This booking was voided due to payment failure or an incomplete checkout.",
+    },
+    COMPLETED: {
+      severity: "success",
+      title: "Booking Completed",
+      message: "Thank you for staying with us!",
+    },
+  };
+  const banner = statusConfig[displayData.status];
 
   return (
     <Container maxWidth='md' sx={{ py: 4 }}>
-      <Alert severity='success' sx={{ mb: 2 }}>
-        <Typography variant='h6'>Booking Confirmed!</Typography>
+      <Alert severity={banner.severity} sx={{ mb: 2 }}>
+        <Typography variant='h6'>{banner.title}</Typography>
         <Typography>
           Confirmation Number: {displayConfirmationNumber}
         </Typography>
         <Typography variant='body2' sx={{ mt: 1 }}>
-          A confirmation email has been sent to your email address.
+          {banner.message}
         </Typography>
         <Typography variant='body2' sx={{ mt: 1 }}>
           Click <Link to='/'>here</Link> to return to home.
@@ -75,15 +156,16 @@ function BookingConfirmationPage() {
           <Typography variant='h6' gutterBottom>
             Booking Details
           </Typography>
-          <Typography>Room Type: {stateData.roomTypeName}</Typography>
+          <Typography>Room Type: {displayData.roomTypeName}</Typography>
           <Typography>
-            Check-in: {formatDate(stateData.checkInDate)} at {CHECK_IN_TIME}
+            Check-in: {formatDate(displayData.checkInDate)} at {CHECK_IN_TIME}
           </Typography>
           <Typography>
-            Check-out: {formatDate(stateData.checkOutDate)} at {CHECK_OUT_TIME}
+            Check-out: {formatDate(displayData.checkOutDate)} at{" "}
+            {CHECK_OUT_TIME}
           </Typography>
-          <Typography>Guests: {stateData.numberOfGuests}</Typography>
-          <Typography>Total: ${stateData.totalPrice.toFixed(2)}</Typography>
+          <Typography>Guests: {displayData.numberOfGuests}</Typography>
+          <Typography>Total: ${displayData.totalPrice.toFixed(2)}</Typography>
         </CardContent>
       </Card>
     </Container>

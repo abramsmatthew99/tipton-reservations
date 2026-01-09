@@ -15,21 +15,35 @@ import {
  * Displays Stripe CardElement for collecting payment details.
  * Handles payment confirmation and error states.
  *
- * @param amount - Total amount in dollars (will be converted to cents)
- * @param onSuccess - Callback when payment succeeds (receives paymentId)
- * @param onError - Callback when payment fails (receives error message)
+ * Flow implemented here:
+ * 1. Create a PENDING booking on backend
+ * 2. Request a PaymentIntent for that booking
+ * 3. Confirm payment with Stripe
+ * 4. Call `onSuccess(paymentIntentId, bookingId)` so parent can confirm booking
+ * If payment or payment-intent creation fails after booking creation, the pending
+ * booking will be cancelled (voided) by calling the cancel booking endpoint.
  */
+
+import type { BookingFormState } from "../../types/booking";
+import {
+  useCreateBookingMutation,
+  useCreatePaymentIntentMutation,
+  useVoidBookingMutation,
+} from "../../store/api/bookingApi";
 
 type StripePaymentFormProps = {
   amount: number; // Amount in dollars
-  onSuccess: (paymentIntentId: string) => void;
+  bookingData: BookingFormState; // booking details to create pending booking
+  onSuccess: (paymentIntentId: string, bookingId: string) => void; // called after payment confirmed
   onError: (error: string) => void;
+  disabled?: boolean; // External disable control (e.g., while confirming booking)
 };
 
 function StripePaymentForm({
-  amount,
+  bookingData,
   onSuccess,
   onError,
+  disabled = false,
 }: StripePaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -37,6 +51,9 @@ function StripePaymentForm({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [createBooking] = useCreateBookingMutation();
+  const [createPaymentIntent] = useCreatePaymentIntentMutation();
+  const [voidBooking] = useVoidBookingMutation();
 
   // Handle terms checkbox
   const handleTermsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,49 +80,69 @@ function StripePaymentForm({
       setProcessing(false);
       return;
     }
+    let pendingBookingId: string | null = null;
 
     try {
-      // Step 1: Create PaymentIntent on backend
-      const response = await fetch("http://localhost:8080/payments/create-payment-intent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: amount,
-          currency: "usd",
-        }),
-      });
+      // Step 1: Create a PENDING booking on the backend
+      const createReq = {
+        roomTypeId: bookingData.roomTypeId,
+        checkInDate: bookingData.checkInDate,
+        checkOutDate: bookingData.checkOutDate,
+        numberOfGuests: bookingData.numberOfGuests,
+      };
 
-      if (!response.ok) {
-        throw new Error("Failed to create payment intent");
-      }
+      const pendingBooking = await createBooking(createReq).unwrap();
+      pendingBookingId = pendingBooking.id;
 
-      const { clientSecret } = await response.json();
+      // Step 2: Create PaymentIntent for that booking on backend
+      const { clientSecret } = await createPaymentIntent({
+        bookingId: pendingBookingId,
+      }).unwrap();
 
-      // Step 2: Confirm payment with Stripe using the client secret
-      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardElement,
-        },
-      });
+      // Step 3: Confirm payment with Stripe using the client secret
+      const { error: confirmError, paymentIntent } =
+        await stripe.confirmCardPayment(clientSecret, {
+          payment_method: { card: cardElement },
+        });
 
       if (confirmError) {
+        // Payment failed — void/cancel the pending booking
         setError(confirmError.message || "Payment failed");
         onError(confirmError.message || "Payment failed");
+        try {
+          if (pendingBookingId) {
+            await voidBooking(pendingBookingId).unwrap();
+          }
+        } catch (cancelErr) {
+          console.error(
+            "Failed to void pending booking after payment failure:",
+            cancelErr
+          );
+        }
         setProcessing(false);
         return;
       }
 
-      // Step 3: Payment successful
+      // Step 4: Payment successful — delegate confirmation to parent
       console.log("Payment successful:", paymentIntent);
-      onSuccess(paymentIntent.id);
+      onSuccess(paymentIntent.id, pendingBookingId as string);
       setProcessing(false);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "Payment processing failed";
       setError(errorMessage);
       onError(errorMessage);
+      // If booking was created but we hit an error before confirming, mark it void/cancelled
+      if (pendingBookingId) {
+        try {
+          await voidBooking(pendingBookingId).unwrap();
+        } catch (cancelErr) {
+          console.error(
+            "Failed to void pending booking after error:",
+            cancelErr
+          );
+        }
+      }
       setProcessing(false);
     }
   };
@@ -182,10 +219,10 @@ function StripePaymentForm({
         variant='contained'
         size='large'
         fullWidth
-        disabled={!stripe || processing || !termsAccepted}
+        disabled={!stripe || processing || !termsAccepted || disabled}
         onClick={handlePayment}
       >
-        {processing ? "Processing..." : "Pay Now & Confirm Booking"}
+        {processing ? "Processing..." : "Pay Now to Confirm Booking"}
       </Button>
     </Box>
   );

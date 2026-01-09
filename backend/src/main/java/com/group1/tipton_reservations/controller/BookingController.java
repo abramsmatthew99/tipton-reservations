@@ -1,6 +1,7 @@
 package com.group1.tipton_reservations.controller;
 
 import com.group1.tipton_reservations.dto.booking.BookingResponse;
+import com.group1.tipton_reservations.dto.booking.ConfirmBookingRequest;
 import com.group1.tipton_reservations.dto.booking.CreateBookingRequest;
 import com.group1.tipton_reservations.dto.booking.ModifyBookingRequest;
 import com.group1.tipton_reservations.security.HotelUserPrincipal;
@@ -127,7 +128,39 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Voids a pending booking due to payment failure or incomplete checkout.
+     *
+     * @param id the booking ID
+     * @param authentication the authenticated user (injected by Spring Security)
+     * @return the voided booking response
+     */
+    @PostMapping("/{id}/void")
+    public ResponseEntity<BookingResponse> voidBooking(
+            @PathVariable String id,
+            Authentication authentication) {
+        BookingResponse response = bookingService.voidBooking(id);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Confirms a pending booking after successful payment.
+     * Called by the frontend after Stripe payment succeeds.
+     *
+     * @param id the booking ID
+     * @param request the confirmation request containing payment intent ID
+     * @param authentication the authenticated user (injected by Spring Security)
+     * @return the confirmed booking response
+     */
+    @PostMapping("/{id}/confirm")
+    public ResponseEntity<BookingResponse> confirmBooking(
+            @PathVariable String id,
+            @Valid @RequestBody ConfirmBookingRequest request,
+            Authentication authentication) {
+        BookingResponse response = bookingService.confirmBooking(id, request.getPaymentIntentId());
+        return ResponseEntity.ok(response);
+    }
+
     // TODO: Future endpoints to implement:
-    // - POST /bookings/{id}/confirm - confirm booking after payment (will originally be set to pending upon creation)
     // - GET /bookings - get all bookings for admin (with pagination and sorting)
 }

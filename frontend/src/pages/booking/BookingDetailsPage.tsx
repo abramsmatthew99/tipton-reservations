@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   Container,
@@ -12,10 +12,18 @@ import {
   Button,
   Stack,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
-// import axios from "axios";
-import type { BookingResponse, BookingStatus } from "../../types/booking";
+import type { BookingStatus } from "../../types/booking";
 import { formatDate } from "../../util/helper";
+import {
+  useGetBookingByIdQuery,
+  useCancelBookingMutation,
+} from "../../store/api/bookingApi";
 
 // Hotel check-in/check-out policy times
 const CHECK_IN_TIME = "3:00 PM";
@@ -25,112 +33,23 @@ const CHECK_OUT_TIME = "11:00 AM";
  * Booking Details Page
  *
  * Displays full details of a single booking.
- * TODO: Currently uses mock data; integrate with backend API
+ * Uses RTK Query for data fetching and mutations.
  */
 function BookingDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [booking, setBooking] = useState<BookingResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
-  useEffect(() => {
-    if (id) {
-      fetchBookingDetails(id);
-    }
-  }, [id]);
+  const {
+    data: booking,
+    isLoading,
+    isError,
+    error,
+  } = useGetBookingByIdQuery(id!, { skip: !id });
 
-  const fetchBookingDetails = async (bookingId: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // TODO: Replace with actual API call with auth
-      // const response = await axios.get(`http://localhost:8080/bookings/${bookingId}`, {
-      //   headers: {
-      //     Authorization: `Bearer ${authToken}`,
-      //   },
-      // });
-      // setBooking(response.data);
-
-      // Mock data for now
-      const mockBookings: BookingResponse[] = [
-        {
-          id: "booking-1",
-          confirmationNumber: "TIP-ABC123",
-          userId: "test-user-123",
-          roomId: "room-101",
-          roomTypeId: "double-room",
-          checkInDate: "2026-01-15",
-          checkOutDate: "2026-01-17",
-          numberOfGuests: 2,
-          totalPrice: "238.00",
-          paymentId: "pi_mock123",
-          status: "CONFIRMED",
-          createdAt: "2026-01-05T10:30:00Z",
-          updatedAt: "2026-01-05T10:30:00Z",
-        },
-        {
-          id: "booking-2",
-          confirmationNumber: "TIP-XYZ789",
-          userId: "test-user-123",
-          roomId: "room-205",
-          roomTypeId: "suite",
-          checkInDate: "2026-02-10",
-          checkOutDate: "2026-02-12",
-          numberOfGuests: 4,
-          totalPrice: "450.00",
-          paymentId: "pi_mock456",
-          status: "CONFIRMED",
-          createdAt: "2026-01-03T14:20:00Z",
-          updatedAt: "2026-01-03T14:20:00Z",
-        },
-        {
-          id: "booking-3",
-          confirmationNumber: "TIP-DEF456",
-          userId: "test-user-123",
-          roomId: "room-302",
-          roomTypeId: "single-room",
-          checkInDate: "2025-12-20",
-          checkOutDate: "2025-12-22",
-          numberOfGuests: 1,
-          totalPrice: "150.00",
-          paymentId: "pi_mock789",
-          status: "COMPLETED",
-          createdAt: "2025-12-15T09:15:00Z",
-          updatedAt: "2025-12-23T11:00:00Z",
-        },
-        {
-          id: "booking-4",
-          confirmationNumber: "TIP-GHI012",
-          userId: "test-user-123",
-          roomId: "room-103",
-          roomTypeId: "double-room",
-          checkInDate: "2026-03-05",
-          checkOutDate: "2026-03-08",
-          numberOfGuests: 2,
-          totalPrice: "357.00",
-          paymentId: null,
-          status: "CANCELLED",
-          createdAt: "2025-12-28T16:45:00Z",
-          updatedAt: "2026-01-02T10:30:00Z",
-        },
-      ];
-
-      const foundBooking = mockBookings.find((b) => b.id === bookingId);
-      if (!foundBooking) {
-        setError("Booking not found");
-      } else {
-        setBooking(foundBooking);
-      }
-    } catch (err) {
-      console.error("Error fetching booking details:", err);
-      setError("Failed to load booking details. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [cancelBooking, { isLoading: isCancelling }] =
+    useCancelBookingMutation();
 
   const getStatusChip = (status: BookingStatus) => {
     const statusConfig = {
@@ -138,38 +57,26 @@ function BookingDetailsPage() {
       PENDING: { color: "warning" as const, label: "Pending" },
       CANCELLED: { color: "error" as const, label: "Cancelled" },
       COMPLETED: { color: "info" as const, label: "Completed" },
+      VOIDED: { color: "default" as const, label: "Voided" },
     };
 
     const config = statusConfig[status];
     return <Chip label={config.label} color={config.color} />;
   };
 
-  const formatRoomType = (roomTypeId: string) => {
-    return roomTypeId
-      .split("-")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
   const handleCancelBooking = async () => {
     if (!booking) return;
 
-    // TODO: Implement actual cancel booking API call
-    // try {
-    //   await axios.delete(`http://localhost:8080/bookings/${booking.id}`, {
-    //     headers: {
-    //       Authorization: `Bearer ${authToken}`,
-    //     },
-    //   });
-    //   navigate("/customer/bookings");
-    // } catch (err) {
-    //   console.error("Error cancelling booking:", err);
-    // }
-
-    console.log("Cancel booking:", booking.id);
+    try {
+      await cancelBooking(booking.id).unwrap();
+      setCancelDialogOpen(false);
+      navigate("/customer/bookings");
+    } catch (err) {
+      console.error("Error cancelling booking:", err);
+    }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <Container maxWidth='md' sx={{ py: 4, textAlign: "center" }}>
         <CircularProgress />
@@ -180,11 +87,18 @@ function BookingDetailsPage() {
     );
   }
 
-  if (error || !booking) {
+  if (isError || !booking) {
+    const errorMessage =
+      error && "data" in error
+        ? String(
+            (error.data as { message?: string })?.message || "Booking not found"
+          )
+        : "Failed to load booking details. Please try again later.";
+
     return (
       <Container maxWidth='md' sx={{ py: 4 }}>
         <Alert severity='error'>
-          {error || "Booking not found"}
+          {errorMessage}
           <Typography variant='body2' sx={{ mt: 1 }}>
             <Link to='/customer/bookings'>Return to My Bookings</Link>
           </Typography>
@@ -243,10 +157,10 @@ function BookingDetailsPage() {
                 Room Information
               </Typography>
               <Typography variant='body1' gutterBottom>
-                {formatRoomType(booking.roomTypeId)}
+                {booking.roomTypeName}
               </Typography>
               <Typography variant='body2' color='text.secondary'>
-                Room ID: {booking.roomId}
+                Room Number: {booking.roomNumber}
               </Typography>
             </Box>
 
@@ -359,7 +273,7 @@ function BookingDetailsPage() {
                   <Button
                     variant='outlined'
                     color='error'
-                    onClick={handleCancelBooking}
+                    onClick={() => setCancelDialogOpen(true)}
                   >
                     Cancel Booking
                   </Button>
@@ -369,6 +283,36 @@ function BookingDetailsPage() {
           </Stack>
         </CardContent>
       </Card>
+
+      {/* Cancel Confirmation Dialog */}
+      <Dialog
+        open={cancelDialogOpen}
+        onClose={() => setCancelDialogOpen(false)}
+      >
+        <DialogTitle>Cancel Booking?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to cancel this booking? This action cannot be
+            undone. Your confirmation number is {booking.confirmationNumber}.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => setCancelDialogOpen(false)}
+            disabled={isCancelling}
+          >
+            Keep Booking
+          </Button>
+          <Button
+            onClick={handleCancelBooking}
+            color='error'
+            variant='contained'
+            disabled={isCancelling}
+          >
+            {isCancelling ? "Cancelling..." : "Yes, Cancel"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

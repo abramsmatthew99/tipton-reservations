@@ -1,77 +1,119 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Container, Grid, Card, CardContent, Typography } from "@mui/material";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Alert,
+  CircularProgress,
+  Box,
+  Button,
+} from "@mui/material";
 import { Elements } from "@stripe/react-stripe-js";
 import type { BookingFormState } from "../../types/booking";
 import BookingSummaryCard from "../../components/Booking/BookingSummaryCard";
 import GuestInfoCard from "../../components/Booking/GuestInfoCard";
 import StripePaymentForm from "../../components/Payment/StripePaymentForm";
 import { stripePromise } from "../../config/stripe";
+import { useConfirmBookingMutation } from "../../store/api/bookingApi";
 
 /**
  * Booking Confirmation Page
  *
- * Displays booking summary and collects payment
- * Flow: Room Selection → THIS PAGE → Success Page
+ * Displays booking summary and collects payment.
  */
 function BookingConfirmPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // TODO: Replace with actual data from route state when room selection is implemented
-  // dummy booking data for now
-  const [bookingData] = useState<BookingFormState>({
-    roomTypeId: "dummy-room-type-id",
-    roomTypeName: "Double Room",
-    roomTypeImage:
-      "https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800",
-    roomTypeDescription:
-      "Spacious room with two double beds, perfect for small families or friends traveling together.",
-    basePrice: 119,
-    checkInDate: "2026-01-15",
-    checkOutDate: "2026-01-17",
-    numberOfGuests: 2,
-    numberOfNights: 2, // Calculated from dates
-    totalPrice: 238, // 119 × 2 nights
-  });
+  // Get booking data from route state (passed from SearchPage)
+  const bookingData = location.state?.bookingData as
+    | BookingFormState
+    | undefined;
 
-  // Handle successful payment
-  const handlePaymentSuccess = (paymentId: string) => {
-    console.log("Payment successful:", paymentId);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const searchParams = location.state?.searchParams as string | undefined;
+  const searchQuery = searchParams ? `?${searchParams}` : "";
 
-    // TODO: Replace with actual API call to POST /bookings when implemented
-    // For now, simulate booking creation
-    const mockConfirmationNumber =
-      "TIP-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+  // RTK Query mutations
+  const [confirmBooking] = useConfirmBookingMutation();
 
-    console.log("Booking data to submit:", {
-      roomTypeId: bookingData.roomTypeId,
-      checkInDate: bookingData.checkInDate,
-      checkOutDate: bookingData.checkOutDate,
-      numberOfGuests: bookingData.numberOfGuests,
-      paymentIntentId: paymentId,
-      // TODO: Get user ID from auth context when auth is implemented
-      // userId: user.id (from auth context)
-    });
+  // Handle successful payment: confirm the pending booking
+  const handlePaymentSuccess = async (
+    paymentIntentId: string,
+    bookingId: string
+  ) => {
+    if (!bookingData) {
+      setBookingError("No booking data found.");
+      return;
+    }
 
-    // Navigate to confirmation page with booking data
-    navigate(`/booking/confirmation/${mockConfirmationNumber}`, {
-      state: {
-        bookingData,
-        confirmationNumber: mockConfirmationNumber,
-      },
-    });
+    setIsProcessing(true);
+
+    try {
+      // Confirm the PENDING booking using bookingId returned from payment flow
+      const confirmedBooking = await confirmBooking({
+        id: bookingId,
+        paymentIntentId,
+      }).unwrap();
+
+      // Navigate to confirmation page with booking details
+      navigate(`/booking/confirmation/${confirmedBooking.confirmationNumber}`, {
+        state: {
+          bookingData,
+          confirmationNumber: confirmedBooking.confirmationNumber,
+          bookingId: confirmedBooking.id,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to confirm booking:", err);
+      setBookingError(
+        "Payment succeeded but booking confirmation failed. Your payment will be refunded. Please contact support with payment ID: " +
+          paymentIntentId
+      );
+      setIsProcessing(false);
+    }
   };
 
   // Handle payment error
   const handlePaymentError = (error: string) => {
     console.error("Payment failed:", error);
+    // The StripePaymentForm handles displaying the error
   };
+
+  // Show error if no booking data was passed
+  if (!bookingData) {
+    return (
+      <Container maxWidth='lg' sx={{ py: 4 }}>
+        <Alert severity='error'>
+          No booking data found. Please go back and select a room.
+        </Alert>
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth='lg' sx={{ py: 4 }}>
+      <Box sx={{ mb: 2 }}>
+        <Button
+          variant='text'
+          onClick={() => navigate(`/customer${searchQuery}`)}
+        >
+          ← Back to Rooms
+        </Button>
+      </Box>
       <Typography variant='h4' gutterBottom>
         Confirm Your Booking
       </Typography>
+
+      {bookingError && (
+        <Alert severity='error' sx={{ mb: 3 }}>
+          {bookingError}
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {/* Left Column: Booking Summary */}
@@ -98,10 +140,21 @@ function BookingConfirmPage() {
               <Elements stripe={stripePromise}>
                 <StripePaymentForm
                   amount={bookingData.totalPrice}
+                  bookingData={bookingData}
                   onSuccess={handlePaymentSuccess}
                   onError={handlePaymentError}
+                  disabled={isProcessing}
                 />
               </Elements>
+
+              {isProcessing && (
+                <Box sx={{ textAlign: "center", mt: 2 }}>
+                  <CircularProgress size={24} />
+                  <Typography variant='body2' sx={{ mt: 1 }}>
+                    Creating and confirming your booking...
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>
