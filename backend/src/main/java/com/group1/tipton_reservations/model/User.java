@@ -32,6 +32,9 @@ public class User {
     @Email
     private String email;
 
+    private String firstName;
+    private String lastName;
+    private String phoneNumber;
     
     private String password;
 

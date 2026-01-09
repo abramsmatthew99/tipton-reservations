@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.group1.tipton_reservations.model.User;
 import com.group1.tipton_reservations.service.UserService;
+import org.springframework.web.bind.annotation.PutMapping;
+
 
 @RestController
 @RequestMapping("/users")
@@ -58,6 +60,31 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .header("Message", "User not found")
+                    .build();
+        }
+    }
+
+    @GetMapping("/email/{email}")
+    public ResponseEntity<User> findUserByEmail(@PathVariable String email) {
+        try {
+            User user = userService.findUserByEmail(email);
+            return new ResponseEntity<>(user, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .header("Message", "User not found")
+                    .build();
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User user) {
+        try {
+            userService.updateUser(id, user);
+            User updatedUser = userService.findUserById(id);
+            return new ResponseEntity<>(updatedUser, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .header("Message", "Error updating user")
                     .build();
         }
     }

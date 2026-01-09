@@ -23,14 +23,22 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    public void updateUser(String id, String email, boolean isActive) {
-        User u = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public void updateUser(String id, User userDetails) {
+    User u = userRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("User not found"));
 
-        u.setEmail(email);
-        u.setActive(isActive);
-        
-        userRepository.save(u);
+    if (userDetails.getFirstName() != null) u.setFirstName(userDetails.getFirstName());
+    if (userDetails.getLastName() != null) u.setLastName(userDetails.getLastName());
+    if (userDetails.getPhoneNumber() != null) u.setPhoneNumber(userDetails.getPhoneNumber());
+    
+    u.setActive(userDetails.isActive());
+
+    userRepository.save(u);
+}
+
+    public User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 
     public User createUser(User user) {
