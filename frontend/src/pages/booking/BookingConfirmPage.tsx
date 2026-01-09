@@ -132,8 +132,8 @@ function BookingConfirmPage() {
               <Typography variant='h6' gutterBottom>
                 Payment
               </Typography>
-              <Typography variant='body2' color='text.secondary' sx={{ mb: 2 }}>
-                Total: ${bookingData.totalPrice.toFixed(2)}
+              <Typography variant='h6' sx={{ color: '#bc6c25', fontWeight: 600, mb: 2 }}>
+                ${bookingData.totalPrice.toFixed(2)}
               </Typography>
 
               {/* Stripe Payment Form */}

@@ -83,8 +83,8 @@ function BookingSummaryCard({
             ${bookingData.basePrice.toFixed(2)} × {bookingData.numberOfNights}{" "}
             nights
           </Typography>
-          <Typography variant='h6'>
-            Total: ${bookingData.totalPrice.toFixed(2)}
+          <Typography variant='h6' sx={{ color: '#bc6c25', fontWeight: 600 }}>
+            ${bookingData.totalPrice.toFixed(2)}
           </Typography>
         </Box>
       </CardContent>

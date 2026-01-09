@@ -480,10 +480,11 @@ public class BookingService {
         response.setRoomId(booking.getRoomId());
         response.setRoomTypeId(booking.getRoomTypeId());
 
-        // Fetch room type name
+        // Fetch room type name and image URLs
         try {
             RoomType roomType = roomTypeService.findRoomTypeById(booking.getRoomTypeId());
             response.setRoomTypeName(roomType.getName());
+            response.setRoomTypeImageUrls(roomType.getImageUrls());
         } catch (Exception e) {
             // Fallback to room type ID if fetch fails
             response.setRoomTypeName(booking.getRoomTypeId());

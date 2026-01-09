@@ -92,7 +92,7 @@ function BookingConfirmationPage() {
             confirmation or contact support.
           </Typography>
           <Typography variant='body2' sx={{ mt: 1 }}>
-            Click <Link to='/'>here</Link> to return to home.
+            Click <Link to='/customer/bookings'>here</Link> to view your bookings.
           </Typography>
         </Alert>
       </Container>
@@ -147,7 +147,7 @@ function BookingConfirmationPage() {
           {banner.message}
         </Typography>
         <Typography variant='body2' sx={{ mt: 1 }}>
-          Click <Link to='/'>here</Link> to return to home.
+          Click <Link to='/customer/bookings'>here</Link> to view your bookings.
         </Typography>
       </Alert>
 
