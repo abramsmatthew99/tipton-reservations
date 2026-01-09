@@ -34,7 +34,7 @@ function CustomerRoomCard({
   maxOccupancy,
   imageUrls,
   description,
-  amenities,
+  amenities = [],
   onBookNow,
 }: RoomProps) {
   return (
@@ -44,6 +44,7 @@ function CustomerRoomCard({
         borderRadius: 3,
         boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
         overflow: "hidden",
+        bgcolor: 'background.paper'
       }}
     >
       <CardMedia
@@ -66,7 +67,7 @@ function CustomerRoomCard({
           <Typography
             variant="h5"
             component="h2"
-            sx={{ fontWeight: 600, color: "#2d3748" }}
+            sx={{ fontWeight: 600, color: "text.primary" }}
           >
             {name}
           </Typography>
@@ -74,7 +75,7 @@ function CustomerRoomCard({
             <Typography
               variant="h5"
               component="span"
-              sx={{ color: "#6366f1", fontWeight: 600 }}
+              sx={{ color: "secondary.main", fontWeight: 600 }}
             >
               ${basePrice}
             </Typography>
@@ -114,13 +115,14 @@ function CustomerRoomCard({
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {amenities.map((amenity) => {
                 const iconName = resolveAmenityIconName(amenity.iconCode ?? "");
-                const IconComponent = iconName ? MuiIcons[iconName] : null;
+                const IconComponent = iconName ? MuiIcons[iconName as keyof typeof MuiIcons] : null;
 
                 return (
                   <Chip
                     key={String(amenity.id)}
                     size="small"
                     label={amenity.name ?? `Amenity ${amenity.id}`}
+                    color="primary"
                     icon={
                       IconComponent ? (
                         <IconComponent fontSize="small" />
@@ -145,14 +147,14 @@ function CustomerRoomCard({
             onClick={onBookNow}
             disabled={!onBookNow}
             sx={{
-              backgroundColor: "#6366f1",
+              backgroundColor: "primary",
               textTransform: "none",
               px: 3,
               py: 1,
               borderRadius: 2,
               fontWeight: 600,
               "&:hover": {
-                backgroundColor: "#4f46e5",
+                backgroundColor: "secondary.main",
               },
               "&:disabled": {
                 backgroundColor: "#9ca3af",
