@@ -144,7 +144,7 @@ function BookingDetailsPage() {
               >
                 Confirmation Number
               </Typography>
-              <Typography variant='h5' color='primary'>
+              <Typography variant='h5' sx={{ fontWeight: 600 }}>
                 {booking.confirmationNumber}
               </Typography>
             </Box>
@@ -221,7 +221,7 @@ function BookingDetailsPage() {
               <Stack spacing={1}>
                 <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                   <Typography variant='body1'>Total Amount</Typography>
-                  <Typography variant='h5' color='primary'>
+                  <Typography variant='h5' sx={{ color: '#bc6c25', fontWeight: 600 }}>
                     ${parseFloat(booking.totalPrice).toFixed(2)}
                   </Typography>
                 </Box>

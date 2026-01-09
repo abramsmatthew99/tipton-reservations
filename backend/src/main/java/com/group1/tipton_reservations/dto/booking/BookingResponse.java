@@ -6,6 +6,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO for booking response data.
@@ -31,6 +32,9 @@ public class BookingResponse {
 
     // Room type name
     private String roomTypeName;
+
+    // Room type image URLs
+    private List<String> roomTypeImageUrls;
 
     // Room number
     private String roomNumber;
