@@ -97,7 +97,7 @@ export default function LandingPage() {
                         variant="contained" 
                         color="secondary" 
                         size="large"
-                        onClick={() => navigate(isAuthenticated ? '/browse-rooms' : '/login')}
+                        onClick={() => navigate(isAuthenticated ? '/customer' : '/login')}
                         sx={{ px: 5, py: 1.5, fontSize: '1.2rem', boxShadow: 4 }}
                     >
                         {isAuthenticated ? "Book a Room" : "Start Your Journey"}
@@ -134,7 +134,7 @@ export default function LandingPage() {
                                             ? room.imageUrls[0] 
                                             : undefined
                                     }
-                                    onBookNow={() => navigate(isAuthenticated ? '/browse-rooms' : '/login')}
+                                    onBookNow={() => navigate(isAuthenticated ? '/customer' : '/login')}
                                 />
                             </Grid>
                         ))}

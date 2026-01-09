@@ -1,82 +1,203 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { 
-    Box, 
-    Card, 
-    CardContent, 
-    Typography, 
-    Button, 
-    Avatar, 
-    Divider,
-    Container 
+    Box, Card, CardContent, Typography, Button, Avatar, Divider, Container, 
+    TextField, Alert, Snackbar, CircularProgress 
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
+import SaveIcon from '@mui/icons-material/Save';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 export default function Profile() {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
+    const [profileData, setProfileData] = useState({
+        id: '',
+        firstName: '',
+        lastName: '',
+        phoneNumber: '',
+        email: user?.sub || '' 
+    });
+
+    const [loading, setLoading] = useState(true);
+    const [message, setMessage] = useState({ type: 'success', text: '', open: false });
+
+    useEffect(() => {
+        if (user?.sub) {
+            const token = localStorage.getItem('token');
+            axios.get(`http://localhost:8080/users/email/${user.sub}`, {headers: { Authorization: `Bearer ${token}`}})
+                .then(response => {
+                    
+                    setProfileData(prev => ({
+                        ...prev,
+                        id: response.data.id,
+                        firstName: response.data.firstName || '',
+                        lastName: response.data.lastName || '',
+                        phoneNumber: response.data.phoneNumber || '',
+                        email: response.data.email 
+                    }));
+                })
+                .catch(err => {
+                    console.error("Failed to load profile", err);
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
+        }
+    }, [user]);
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setProfileData(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleSave = () => {
+        if(!profileData.id) {
+             setMessage({ open: true, type: 'error', text: 'Cannot update: User ID missing.' });
+             return;
+        }
+
+        const token = localStorage.getItem('token');
+
+        axios.put(`http://localhost:8080/users/${profileData.id}`, profileData, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+            .then(response => {
+                setProfileData(prev => ({
+                    ...prev,
+                    ...response.data,
+                    firstName: response.data.firstName || '',
+                    lastName: response.data.lastName || '',
+                    phoneNumber: response.data.phoneNumber || ''
+                }));
+                setMessage({ open: true, type: 'success', text: 'Profile updated successfully!' });
+            })
+            .catch(err => {
+                console.error(err);
+                setMessage({ open: true, type: 'error', text: 'Failed to update profile.' });
+            });
+    };
+
     const handleLogout = () => {
         logout();
-        navigate('/'); // Go back to landing/login page
+        navigate('/');
     };
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
 
     return (
         <Container maxWidth="sm">
             <Box sx={{ mt: 8, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Card sx={{ width: '100%', boxShadow: 3 }}>
                     <Box sx={{ 
-                        p: 3, 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        alignItems: 'center', 
-                        bgcolor: 'primary.main', 
-                        color: 'white' 
+                        p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', 
+                        bgcolor: 'primary.main', color: 'white' 
                     }}>
                         <Avatar sx={{ width: 80, height: 80, bgcolor: 'white', color: 'primary.main', mb: 2 }}>
                             <PersonIcon sx={{ fontSize: 50 }} />
                         </Avatar>
-                        <Typography variant="h5" component="div">
-                            My Profile
+                        <Typography variant="h5">
+                            {profileData.firstName ? `${profileData.firstName} ${profileData.lastName}` : 'Complete Your Profile'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                            {user?.roles?.map(role => role.replace('ROLE_', '').toLowerCase()).join(', ') || "Customer"}
                         </Typography>
                     </Box>
 
                     <CardContent sx={{ p: 4 }}>
-                        <Box sx={{ mb: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Email Address
-                            </Typography>
-                            <Typography variant="h6">
-                                {user?.sub || "Unknown User"}
-                            </Typography>
+                        <Box component="form" noValidate autoComplete="off" sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            
+                            <TextField
+                                label="Email Address"
+                                value={profileData.email}
+                                fullWidth
+                                disabled
+                                variant="filled"
+                                helperText="Email cannot be changed"
+                            />
+
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <TextField
+                                    label="First Name"
+                                    name="firstName"
+                                    value={profileData.firstName}
+                                    onChange={handleInputChange}
+                                    fullWidth
+                                    placeholder="Jane"
+                                    InputLabelProps={{ shrink: true }} 
+                                />
+                                <TextField
+                                    label="Last Name"
+                                    name="lastName"
+                                    value={profileData.lastName}
+                                    onChange={handleInputChange}
+                                    fullWidth
+                                    placeholder="Doe"
+                                    InputLabelProps={{ shrink: true }} 
+                                />
+                            </Box>
+
+                            <TextField
+                                label="Phone Number"
+                                name="phoneNumber"
+                                value={profileData.phoneNumber}
+                                onChange={handleInputChange}
+                                fullWidth
+                                placeholder="(555) 123-4567"
+                                InputLabelProps={{ shrink: true }} 
+                            />
+
+                            <Button 
+                                variant="contained" 
+                                color="primary" 
+                                startIcon={<SaveIcon />}
+                                fullWidth
+                                onClick={handleSave}
+                                sx={{ mt: 1 }}
+                            >
+                                Save Changes
+                            </Button>
+
+                            <Divider sx={{ my: 1 }} />
+
+                            <Button 
+                                variant="outlined" 
+                                color="error" 
+                                startIcon={<LogoutIcon />}
+                                fullWidth
+                                onClick={handleLogout}
+                            >
+                                Sign Out
+                            </Button>
                         </Box>
-
-                        <Divider sx={{ my: 2 }} />
-
-                        <Box sx={{ mb: 3 }}>
-                            <Typography variant="subtitle2" color="text.secondary">
-                                Account Type
-                            </Typography>
-                            {/* Display roles  */}
-                            <Typography variant="body1" sx={{ textTransform: 'capitalize' }}>
-                                {user?.roles?.map(role => role.replace('ROLE_', '').toLowerCase()).join(', ') || "Customer"}
-                            </Typography>
-                        </Box>
-
-                        <Button 
-                            variant="outlined" 
-                            color="error" 
-                            startIcon={<LogoutIcon />}
-                            fullWidth
-                            onClick={handleLogout}
-                            sx={{ mt: 2 }}
-                        >
-                            Sign Out
-                        </Button>
                     </CardContent>
                 </Card>
             </Box>
+            
+            <Snackbar 
+                open={message.open} 
+                autoHideDuration={6000} 
+                onClose={() => setMessage(prev => ({ ...prev, open: false }))}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert severity={message.type} sx={{ width: '100%' }}>
+                    {message.text}
+                </Alert>
+            </Snackbar>
         </Container>
     );
 }
