@@ -2,11 +2,17 @@ package com.group1.tipton_reservations.controller;
 
 import com.group1.tipton_reservations.dto.payment.PaymentIntentRequest;
 import com.group1.tipton_reservations.dto.payment.PaymentIntentResponse;
+import com.group1.tipton_reservations.model.Booking;
+import com.group1.tipton_reservations.model.enums.BookingStatus;
+import com.group1.tipton_reservations.repository.BookingRepository;
 import com.group1.tipton_reservations.service.StripeService;
 import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * Controller for handling payment-related operations
@@ -17,9 +23,11 @@ import org.springframework.web.bind.annotation.*;
 public class PaymentController {
 
     private final StripeService stripeService;
+    private final BookingRepository bookingRepository;
 
-    public PaymentController(StripeService stripeService) {
+    public PaymentController(StripeService stripeService, BookingRepository bookingRepository) {
         this.stripeService = stripeService;
+        this.bookingRepository = bookingRepository;
     }
 
     /**
@@ -31,23 +39,29 @@ public class PaymentController {
     @PostMapping("/create-payment-intent")
     public ResponseEntity<?> createPaymentIntent(@RequestBody PaymentIntentRequest request) {
         try {
-            System.out.println("Creating payment intent for amount: " + request.amount() + " " + request.currency());
+            Booking booking = bookingRepository.findById(request.bookingId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Booking not found"
+                ));
 
-            String clientSecret = stripeService.createPaymentIntent(
-                request.amount(),
-                request.currency()
-            );
-
+            if (booking.getStatus() != BookingStatus.PENDING) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Payment can only be created for PENDING bookings"
+                );
+            }
+            PaymentIntent intent = stripeService.createPaymentIntent(booking, "usd");
             System.out.println("Payment intent created successfully");
-            return ResponseEntity.ok(new PaymentIntentResponse(clientSecret));
+
+            booking.setPaymentId(intent.getId());
+            bookingRepository.save(booking);
+
+            return ResponseEntity.ok(new PaymentIntentResponse(intent.getClientSecret()));
         } catch (StripeException e) {
-            System.err.println("Stripe error: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Error creating payment intent: " + e.getMessage());
+                    .body("Stripe error: " + e.getMessage());
         } catch (Exception e) {
-            System.err.println("Unexpected error: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Unexpected error: " + e.getMessage());
         }

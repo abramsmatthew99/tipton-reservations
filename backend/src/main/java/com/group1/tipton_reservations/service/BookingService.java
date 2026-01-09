@@ -35,6 +35,7 @@ public class BookingService {
     private final UserService userService;
     private final RoomTypeService roomTypeService;
     private final RoomService roomService;
+    private final StripeService stripeService;
 
     /**
      * Creates a new booking.
@@ -87,13 +88,20 @@ public class BookingService {
             );
         }
 
-        // TODO: Uncomment when room assignment logic is ready
         // find and assign an available room of this type
-        // Room assignedRoom = roomService.findAvailableRoom(
-        //         request.getRoomTypeId(),
-        //         request.getCheckInDate(),
-        //         request.getCheckOutDate()
-        // );
+        Room assignedRoom;
+        try {
+            assignedRoom = roomService.findAvailableRoom(
+                    request.getRoomTypeId(),
+                    request.getCheckInDate(),
+                    request.getCheckOutDate()
+            );
+        } catch (RuntimeException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "No rooms available for this room type during the selected dates"
+            );
+        }
 
         // calculate total price based on room type and number of nights
         BigDecimal totalPrice = calculateTotalPrice(
@@ -106,13 +114,11 @@ public class BookingService {
         Booking booking = new Booking();
         booking.setUserId(userId);
         booking.setRoomTypeId(request.getRoomTypeId());
-        // TODO: Replace hardcoded room ID when room assignment is implemented
-        // booking.setRoomId(assignedRoom.getId());
-        booking.setRoomId("test-room-id");    // Temporary hardcode for testing
+        booking.setRoomId(assignedRoom.getId());
         booking.setCheckInDate(request.getCheckInDate());
         booking.setCheckOutDate(request.getCheckOutDate());
         booking.setNumberOfGuests(request.getNumberOfGuests());
-        booking.setStatus(BookingStatus.CONFIRMED);     // TODO: Change to PENDING once payment logic is implemented
+        booking.setStatus(BookingStatus.PENDING);  // Booking starts as PENDING until payment is confirmed
         booking.setConfirmationNumber(generateConfirmationNumber());
         booking.setTotalPrice(totalPrice);
 
@@ -296,6 +302,114 @@ public class BookingService {
     }
 
     /**
+     * Voids a booking due to payment failure or incomplete checkout.
+     * Requires user to own the booking or be an admin.
+     *
+     * @param bookingId the booking ID
+     * @return the voided booking response
+     * @throws ResponseStatusException if booking not found, not pending, or already voided/cancelled/confirmed
+     */
+    @PreAuthorize("@bookingSecurity.isOwner(#bookingId)")
+    public BookingResponse voidBooking(String bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Booking not found with ID: " + bookingId
+                ));
+
+        if (booking.getStatus() == BookingStatus.VOIDED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Booking is already voided"
+            );
+        }
+
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cancelled bookings cannot be voided"
+            );
+        }
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only PENDING bookings can be voided. Current status: " + booking.getStatus()
+            );
+        }
+
+        booking.setStatus(BookingStatus.VOIDED);
+        Booking voidedBooking = bookingRepository.save(booking);
+
+        return mapToResponse(voidedBooking);
+    }
+
+    /**
+     * Confirms a pending booking after successful payment.
+     * Verifies payment with Stripe before confirming the booking.
+     * Updates the booking status from PENDING to CONFIRMED and links the payment.
+     * Requires user to own the booking or be an admin.
+     *
+     * @param bookingId the booking ID
+     * @param paymentIntentId the Stripe payment intent ID from successful payment
+     * @return the confirmed booking response
+     * @throws ResponseStatusException if booking not found, not pending, payment verification fails, or unauthorized
+     */
+    @PreAuthorize("@bookingSecurity.isOwner(#bookingId)")
+    public BookingResponse confirmBooking(String bookingId, String paymentIntentId) {
+        // find existing booking
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Booking not found with ID: " + bookingId
+                ));
+
+        // verify booking is in PENDING status
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Can only confirm bookings with PENDING status. Current status: " + booking.getStatus()
+            );
+        }
+
+        // verify payment with Stripe
+        try {
+            com.stripe.model.PaymentIntent paymentIntent = stripeService.retrievePaymentIntent(paymentIntentId);
+
+            // check if payment actually succeeded
+            if (!"succeeded".equals(paymentIntent.getStatus())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Payment not confirmed by Stripe. Payment status: " + paymentIntent.getStatus()
+                );
+            }
+
+            // verify payment amount matches booking total (Stripe uses cents)
+            long expectedAmountInCents = booking.getTotalPrice().multiply(new BigDecimal("100")).longValue();
+            if (!paymentIntent.getAmount().equals(expectedAmountInCents)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Payment amount mismatch. Expected: " + expectedAmountInCents + " cents, Got: " + paymentIntent.getAmount() + " cents"
+                );
+            }
+        } catch (com.stripe.exception.StripeException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Failed to verify payment with Stripe: " + e.getMessage()
+            );
+        }
+
+        // update status to confirmed and link payment
+        booking.setStatus(BookingStatus.CONFIRMED);
+        booking.setPaymentId(paymentIntentId);
+
+        // save updated booking
+        Booking confirmedBooking = bookingRepository.save(booking);
+
+        return mapToResponse(confirmedBooking);
+    }
+
+    /**
      * Validates that check-out date is after check-in date.
      *
      * @param checkInDate the check-in date
@@ -353,6 +467,7 @@ public class BookingService {
 
     /**
      * Maps a Booking entity to a BookingResponse DTO.
+     * Fetches room type name and room number for better UX.
      *
      * @param booking the booking entity
      * @return the booking response DTO
@@ -364,6 +479,25 @@ public class BookingService {
         response.setUserId(booking.getUserId());
         response.setRoomId(booking.getRoomId());
         response.setRoomTypeId(booking.getRoomTypeId());
+
+        // Fetch room type name
+        try {
+            RoomType roomType = roomTypeService.findRoomTypeById(booking.getRoomTypeId());
+            response.setRoomTypeName(roomType.getName());
+        } catch (Exception e) {
+            // Fallback to room type ID if fetch fails
+            response.setRoomTypeName(booking.getRoomTypeId());
+        }
+
+        // Fetch room number
+        try {
+            Room room = roomService.findRoomById(booking.getRoomId());
+            response.setRoomNumber(room.getRoomNumber());
+        } catch (Exception e) {
+            // Fallback to room ID if fetch fails
+            response.setRoomNumber(booking.getRoomId());
+        }
+
         response.setCheckInDate(booking.getCheckInDate());
         response.setCheckOutDate(booking.getCheckOutDate());
         response.setNumberOfGuests(booking.getNumberOfGuests());
