@@ -1,21 +1,65 @@
-import { Card, CardContent, Typography, Box, Divider } from "@mui/material";
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  Typography,
+  Box,
+  Divider,
+  CircularProgress,
+} from "@mui/material";
+import { useAuth } from "../../context/AuthContext";
+import axios from "axios";
 
 /**
  * Guest Information Card Component
  *
  * Displays read-only guest information from authenticated user account.
- * Shows name and email - users should update their account settings to change this info.
+ * Fetches and shows firstName, lastName, and email from User model.
  */
 function GuestInfoCard() {
-  // TODO: When auth is implemented, get user from auth context:
-  // const { user } = useAuth();
+  const { user } = useAuth();
 
-  // Dummy user data for now (will be replaced with actual user from auth context)
-  const user = {
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-  };
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    email: user?.sub || "",
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user?.sub) {
+      const token = localStorage.getItem("token");
+      axios
+        .get(`http://localhost:8080/users/email/${user.sub}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((response) => {
+          setProfileData({
+            firstName: response.data.firstName || "",
+            lastName: response.data.lastName || "",
+            email: response.data.email,
+          });
+        })
+        .catch((err) => {
+          console.error("Failed to load user profile", err);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    }
+  }, [user]);
+
+  if (loading) {
+    return (
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 2 }}>
+            <CircularProgress size={20} />
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card sx={{ mb: 3 }}>
@@ -26,23 +70,26 @@ function GuestInfoCard() {
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
           {/* Name */}
-          <Box>
-            <Typography variant='body2' color='text.secondary'>
-              Name
-            </Typography>
-            <Typography variant='body1'>
-              {user.firstName} {user.lastName}
-            </Typography>
-          </Box>
-
-          <Divider />
+          {(profileData.firstName || profileData.lastName) && (
+            <>
+              <Box>
+                <Typography variant='body2' color='text.secondary'>
+                  Name
+                </Typography>
+                <Typography variant='body1'>
+                  {profileData.firstName} {profileData.lastName}
+                </Typography>
+              </Box>
+              <Divider />
+            </>
+          )}
 
           {/* Email */}
           <Box>
             <Typography variant='body2' color='text.secondary'>
               Email
             </Typography>
-            <Typography variant='body1'>{user.email}</Typography>
+            <Typography variant='body1'>{profileData.email}</Typography>
             <Typography variant='caption' color='text.secondary'>
               Confirmation will be sent to this email
             </Typography>
