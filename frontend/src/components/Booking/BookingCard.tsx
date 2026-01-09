@@ -59,15 +59,28 @@ function BookingCard({ booking }: BookingCardProps) {
       }}
     >
       {/* Left Side: Image */}
-      {/* TODO: using placeholder; replace with real images */}
-      <Box
-        sx={{
-          width: 240,
-          minHeight: 200,
-          backgroundColor: "#7D7D7D",
-          flexShrink: 0,
-        }}
-      />
+      {booking.roomTypeImageUrls && booking.roomTypeImageUrls.length > 0 ? (
+        <Box
+          component='img'
+          src={booking.roomTypeImageUrls[0]}
+          alt={booking.roomTypeName}
+          sx={{
+            width: 240,
+            minHeight: 200,
+            objectFit: "cover",
+            flexShrink: 0,
+          }}
+        />
+      ) : (
+        <Box
+          sx={{
+            width: 240,
+            minHeight: 200,
+            backgroundColor: "#7D7D7D",
+            flexShrink: 0,
+          }}
+        />
+      )}
 
       {/* Right Side: Content */}
       <Box sx={{ display: "flex", flexDirection: "column", flex: 1, p: 3 }}>
@@ -168,8 +181,8 @@ function BookingCard({ booking }: BookingCardProps) {
             <Typography variant='caption' color='text.secondary'>
               {nights} {nights === 1 ? "night" : "nights"}
             </Typography>
-            <Typography variant='h6' color='primary' sx={{ fontWeight: 600 }}>
-              Total: ${parseFloat(booking.totalPrice).toFixed(2)}
+            <Typography variant='h6' sx={{ color: '#bc6c25', fontWeight: 600 }}>
+              ${parseFloat(booking.totalPrice).toFixed(2)}
             </Typography>
           </Box>
 
