@@ -4,7 +4,6 @@ import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
 import BookingConfirmPage from "./pages/booking/BookingConfirmPage";
 import BookingConfirmationPage from "./pages/booking/BookingConfirmationPage";
-import NavBar from "./components/NavBar";
 import AdminPortal from "./layouts/AdminPortal";
 import CustomerPortal from "./layouts/CustomerPortal";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -17,31 +16,18 @@ import BookingsPage from "./pages/customer/BookingsPage";
 import BookingDetailsPage from "./pages/booking/BookingDetailsPage";
 import PrivateRoute from "./components/PrivateRoute";
 import AuthSuccess from "./pages/AuthSuccess";
+import LandingPage from "./pages/Landing";
 
 function App() {
   return (
     <AuthProvider>
       <Routes>
 
-        {/* --- Public Routes --- */}
+        {/*  Public Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/auth-success" element={<AuthSuccess />} />
+        <Route path="/" element={<LandingPage />} />
 
-        {/* Landing page - placeholder for now */}
-        <Route
-          path='/'
-          element={
-            <>
-              <NavBar />
-              <div className='app'>
-                <header>
-                  <h1>Tipton Hotel Reservations</h1>
-                  <p>Welcome to Tipton. <a href="/login"> Login Here</a></p>
-                </header>
-              </div>
-            </>
-          }
-        />
         {/* Admin route for existing room management forms */}
         <Route element={<PrivateRoute allowedRoles={['ROLE_ADMIN']} />}>
           <Route path="/admin" element={<AdminPortal />}>
@@ -60,7 +46,7 @@ function App() {
           path='/booking/confirmation/:confirmationNumber'
           element={<BookingConfirmationPage />}
         />
-        {/* --- Customer Portal --- */}
+        {/* Customer Portal */}
         <Route element={<PrivateRoute allowedRoles={['ROLE_ADMIN', 'ROLE_CUSTOMER']}/>}>
           <Route path="/customer" element={<CustomerPortal />}>
             <Route index element={<BrowseRooms />} />
