@@ -64,6 +64,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/room-types/**").permitAll()
+                .requestMatchers("/rooms/**").permitAll()
+
                 .requestMatchers("/amenities/**").permitAll()
                 .requestMatchers("/payments/**").authenticated() // Requires auth for payment processing
                 .requestMatchers("/bookings/**").authenticated() // Requires auth for booking operations
