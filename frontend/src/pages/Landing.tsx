@@ -7,7 +7,6 @@ import {
     Grid, 
     AppBar, 
     Toolbar,
-    Stack,
     CircularProgress 
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
@@ -42,35 +41,6 @@ export default function LandingPage() {
     return (
         <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             
-            {/* --- 1. NAVBAR */}
-            <AppBar position="absolute" color="transparent" elevation={0} sx={{ top: 0 }}>
-                <Toolbar sx={{ justifyContent: 'space-between' }}>
-                    <Typography variant="h5" sx={{ color: 'common.white', fontWeight: 'bold', textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>
-                        Tipton Hotel
-                    </Typography>
-                    
-                    <Box>
-                        {isAuthenticated ? (
-                            <Button 
-                                variant="contained"
-                                color="secondary"
-                                onClick={() => navigate('/customer')}
-                                sx={{ color: 'white' }}
-                            >
-                                My Dashboard
-                            </Button>
-                        ) : (
-                            <Button 
-                                color="inherit" 
-                                onClick={() => navigate('/login')}
-                                sx={{ color: 'white', fontWeight: 'bold' }}
-                            >
-                                Sign In
-                            </Button>
-                        )}
-                    </Box>
-                </Toolbar>
-            </AppBar>
 
             {/* --- 2. HERO SECTION  */}
             <Box sx={{ 
@@ -140,39 +110,7 @@ export default function LandingPage() {
                         ))}
                     </Grid>
                 )}
-            </Container>
-
-            {/*  FOOTER */}
-            <Box sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', py: 6, mt: 'auto' }}>
-                <Container maxWidth="lg">
-                    <Grid container spacing={4}>
-                        <Grid  size={{xs:12, md:4}}>
-                            <Typography variant="h6" gutterBottom>The Tipton</Typography>
-                            <Typography variant="body2">
-                                123 Forest Lane<br />
-                                Woodland, CA 90210
-                            </Typography>
-                        </Grid>
-                        <Grid  size={{xs:12, md:4}}>
-                            <Typography variant="h6" gutterBottom>Contact</Typography>
-                            <Typography variant="body2">
-                                (555) 123-4567<br />
-                                reservations@tipton.com
-                            </Typography>
-                        </Grid>
-                        <Grid size={{xs:12, md:4}}>
-                            <Typography variant="h6" gutterBottom>Follow Us</Typography>
-                            <Stack direction="row" spacing={2}>
-                                <Typography variant="body2" sx={{ cursor: 'pointer', textDecoration: 'underline' }}>Instagram</Typography>
-                                <Typography variant="body2" sx={{ cursor: 'pointer', textDecoration: 'underline' }}>Facebook</Typography>
-                            </Stack>
-                        </Grid>
-                    </Grid>
-                    <Typography variant="body2" textAlign="center" sx={{ mt: 4, opacity: 0.7 }}>
-                        © 2026 Tipton Hotel Group. All rights reserved.
-                    </Typography>
-                </Container>
-            </Box>
+            </Container>            
         </Box>
     );
 }
