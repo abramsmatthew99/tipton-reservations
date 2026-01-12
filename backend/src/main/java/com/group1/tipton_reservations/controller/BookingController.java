@@ -16,7 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 /**
  * REST controller for booking endpoints.
@@ -43,6 +44,18 @@ public class BookingController {
         String userId = ((HotelUserPrincipal) authentication.getPrincipal()).getUser().getId();
         BookingResponse response = bookingService.createBooking(request, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Retrieves all bookings.
+     * Admin-only operation.
+     *
+     * @return list of booking responses
+     */
+    @GetMapping
+    public ResponseEntity<List<BookingResponse>> getAllBookings() {
+        List<BookingResponse> bookings = bookingService.getAllBookings();
+        return ResponseEntity.ok(bookings);
     }
 
     /**
@@ -160,7 +173,4 @@ public class BookingController {
         BookingResponse response = bookingService.confirmBooking(id, request.getPaymentIntentId());
         return ResponseEntity.ok(response);
     }
-
-    // TODO: Future endpoints to implement:
-    // - GET /bookings - get all bookings for admin (with pagination and sorting)
 }

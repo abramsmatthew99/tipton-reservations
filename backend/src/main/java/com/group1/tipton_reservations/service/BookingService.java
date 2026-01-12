@@ -179,6 +179,20 @@ public class BookingService {
     }
 
     /**
+     * Retrieves all bookings.
+     * Admin-only operation.
+     *
+     * @return list of booking responses
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<BookingResponse> getAllBookings() {
+        List<Booking> bookings = bookingRepository.findAll();
+        return bookings.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    /**
      * Modifies an existing booking's dates.
      * Validates new dates and checks availability for the new date range.
      * Requires user to own the booking or be an admin
