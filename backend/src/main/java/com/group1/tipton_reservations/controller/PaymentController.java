@@ -9,6 +9,8 @@ import com.group1.tipton_reservations.service.StripeService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 
+import java.math.BigDecimal;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -66,4 +68,12 @@ public class PaymentController {
                     .body("Unexpected error: " + e.getMessage());
         }
     }
+    
+    @GetMapping("/monthly-revenue")
+    public BigDecimal getMonthlyRevenue() throws Exception {
+        return stripeService.getCurrentMonthRevenue();
+    }
+    
+
+
 }
