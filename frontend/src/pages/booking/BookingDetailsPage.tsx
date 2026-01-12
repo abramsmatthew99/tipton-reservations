@@ -17,13 +17,18 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Snackbar,
 } from "@mui/material";
+import InfoIcon from "@mui/icons-material/Info";
 import type { BookingStatus } from "../../types/booking";
 import { formatDate } from "../../util/helper";
+import { Elements } from "@stripe/react-stripe-js";
+import { stripePromise } from "../../config/stripe";
 import {
   useGetBookingByIdQuery,
   useCancelBookingMutation,
 } from "../../store/api/bookingApi";
+import ModifyBookingDialog from "../../components/Booking/ModifyBookingDialog";
 
 // Hotel check-in/check-out policy times
 const CHECK_IN_TIME = "3:00 PM";
@@ -40,6 +45,8 @@ function BookingDetailsPage() {
   const navigate = useNavigate();
 
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [modifyDialogOpen, setModifyDialogOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const {
     data: booking,
@@ -71,8 +78,20 @@ function BookingDetailsPage() {
       await cancelBooking(booking.id).unwrap();
       setCancelDialogOpen(false);
       navigate("/customer/bookings");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error cancelling booking:", err);
+      console.log("Error structure:", {
+        status: err?.status,
+        data: err?.data,
+        message: err?.data?.message,
+        error: err?.error,
+      });
+      setCancelDialogOpen(false);
+
+      // Show the backend error message directly
+      const message =
+        err?.data?.message || "Failed to cancel booking. Please try again.";
+      setErrorMessage(message);
     }
   };
 
@@ -263,14 +282,22 @@ function BookingDetailsPage() {
             {booking.status === "CONFIRMED" && (
               <>
                 <Divider />
+
+                {/* Policy Warning */}
+                <Alert severity='info' icon={<InfoIcon />}>
+                  <Typography variant='body2'>
+                    <strong>Cancellation & Modification Policy:</strong> Changes
+                    can only be made at least 24 hours before check-in time (
+                    {CHECK_IN_TIME}) in the hotel's local time (Pacific Standard
+                    Time).
+                  </Typography>
+                </Alert>
+
                 <Box sx={{ display: "flex", gap: 2 }}>
                   <Button
                     variant='outlined'
                     color='primary'
-                    onClick={() => {
-                      // TODO: Implement modify booking functionality
-                      console.log("Modify booking:", booking.id);
-                    }}
+                    onClick={() => setModifyDialogOpen(true)}
                   >
                     Modify Booking
                   </Button>
@@ -287,6 +314,15 @@ function BookingDetailsPage() {
           </Stack>
         </CardContent>
       </Card>
+
+      {/* Modify Booking Dialog */}
+      <Elements stripe={stripePromise}>
+        <ModifyBookingDialog
+          booking={booking}
+          open={modifyDialogOpen}
+          onClose={() => setModifyDialogOpen(false)}
+        />
+      </Elements>
 
       {/* Cancel Confirmation Dialog */}
       <Dialog
@@ -317,6 +353,22 @@ function BookingDetailsPage() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Error Snackbar */}
+      <Snackbar
+        open={!!errorMessage}
+        autoHideDuration={8000}
+        onClose={() => setErrorMessage(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          severity='error'
+          onClose={() => setErrorMessage(null)}
+          sx={{ width: "100%" }}
+        >
+          {errorMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

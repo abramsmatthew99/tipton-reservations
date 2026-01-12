@@ -36,6 +36,9 @@ public class BookingResponse {
     // Room type image URLs
     private List<String> roomTypeImageUrls;
 
+    // Room type max occupancy
+    private Integer roomTypeMaxOccupancy;
+
     // Room number
     private String roomNumber;
 

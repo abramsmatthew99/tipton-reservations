@@ -1,33 +1,26 @@
 package com.group1.tipton_reservations.dto.booking;
 
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.FutureOrPresent;
 import lombok.Data;
 
 import java.time.LocalDate;
 
 /**
- * DTO for modifying an existing booking's dates.
- * Only allows changing check-in and check-out dates (subject to availability).
+ * DTO for requesting a payment intent when modifying a booking that increases price.
  */
 @Data
-public class ModifyBookingRequest {
+public class ModifyBookingPaymentIntentRequest {
 
-    // New check-in date (must be today or in the future)
     @NotNull(message = "Check-in date is required")
     @FutureOrPresent(message = "Check-in date must be today or in the future")
     private LocalDate checkInDate;
 
-    // New check-out date (must be after check-in date)
     @NotNull(message = "Check-out date is required")
     private LocalDate checkOutDate;
 
-    // Number of guests for the booking
     @NotNull(message = "Number of guests is required")
     @Positive(message = "Number of guests must be at least 1")
     private Integer numberOfGuests;
-
-    // Payment intent ID for price increases (required when new total is higher)
-    private String paymentIntentId;
 }
