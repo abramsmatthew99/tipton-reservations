@@ -12,6 +12,8 @@ export interface CreateBookingRequest {
 export interface ModifyBookingRequest {
   checkInDate: string;
   checkOutDate: string;
+  numberOfGuests: number;
+  paymentIntentId?: string;
 }
 
 export interface ConfirmBookingRequest {
@@ -117,6 +119,15 @@ export const bookingApi = createApi({
       invalidatesTags: (_result, _error, { id }) => [{ type: 'Booking', id }],
     }),
 
+    // Create payment intent for booking modification (price increase)
+    createModifyPaymentIntent: builder.mutation<PaymentIntentResponse, { id: string; checkInDate: string; checkOutDate: string; numberOfGuests: number }>({
+      query: ({ id, checkInDate, checkOutDate, numberOfGuests }) => ({
+        url: `/bookings/${id}/modify-payment-intent`,
+        method: 'POST',
+        body: { checkInDate, checkOutDate, numberOfGuests },
+      }),
+    }),
+
     // Cancel a booking
     cancelBooking: builder.mutation<BookingResponse, string>({
       query: (id) => ({
@@ -151,6 +162,7 @@ export const {
   useCreateBookingMutation,
   useConfirmBookingMutation,
   useCreatePaymentIntentMutation,
+  useCreateModifyPaymentIntentMutation,
   useModifyBookingMutation,
   useCancelBookingMutation,
   useVoidBookingMutation,
