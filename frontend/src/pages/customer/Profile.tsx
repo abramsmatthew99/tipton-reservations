@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { 
-    Box, Card, CardContent, Typography, Button, Avatar, Divider, Container, 
-    TextField, Alert, Snackbar, CircularProgress 
+import type { AlertColor } from '@mui/material';
+import {
+    Box, Card, CardContent, Typography, Button, Avatar, Divider, Container,
+    TextField, Alert, Snackbar, CircularProgress
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -11,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export default function Profile() {
+    const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
@@ -23,12 +25,16 @@ export default function Profile() {
     });
 
     const [loading, setLoading] = useState(true);
-    const [message, setMessage] = useState({ type: 'success', text: '', open: false });
+    const [message, setMessage] = useState<{ type: AlertColor; text: string; open: boolean }>({
+        type: 'success',
+        text: '',
+        open: false
+    });
 
     useEffect(() => {
         if (user?.sub) {
             const token = localStorage.getItem('token');
-            axios.get(`http://localhost:8080/users/email/${user.sub}`, {headers: { Authorization: `Bearer ${token}`}})
+            axios.get(`${baseURL}/users/email/${user.sub}`, {headers: { Authorization: `Bearer ${token}`}})
                 .then(response => {
                     
                     setProfileData(prev => ({
@@ -49,7 +55,7 @@ export default function Profile() {
         }
     }, [user]);
 
-    const handleInputChange = (e) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setProfileData(prev => ({
             ...prev,
@@ -65,7 +71,7 @@ export default function Profile() {
 
         const token = localStorage.getItem('token');
 
-        axios.put(`http://localhost:8080/users/${profileData.id}`, profileData, {
+        axios.put(`${baseURL}/users/${profileData.id}`, profileData, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }

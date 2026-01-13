@@ -27,9 +27,9 @@ type RoomTypeOption = {
 
 type Room = {
   id?: string | number;
-  floor: number | string | null;
-  roomNumber: string | number;
-  roomTypeId: string | number;
+  floor?: number | string | null;
+  roomNumber?: string | number;
+  roomTypeId?: string | number;
   roomTypeName?: string;
 };
 
@@ -181,7 +181,11 @@ const AdminRooms = () => {
       const roomTypeLookup = new Map<string, string>(
         roomTypesRes.map((roomType) => [String(roomType.id), roomType.name])
       );
-      setRoomTypes(roomTypesRes);
+      setRoomTypes(
+        roomTypesRes
+          .filter((rt) => rt.id !== undefined)
+          .map((rt) => ({ id: rt.id!, name: rt.name }))
+      );
       setRooms(
         roomRes.map((room) => ({
           ...room,
