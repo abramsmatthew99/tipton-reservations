@@ -1,7 +1,4 @@
-import { useEffect, useState } from "react";
 import { Box, Stack, Typography } from "@mui/material";
-import CustomerRoomCard from "../../components/CustomerRoomCard";
-import CustomerDateFilter from "../../components/CustomerDateFilter";
 import SearchPage from "../../components/SearchPage";
 
 const BrowseRooms = () => {

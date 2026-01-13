@@ -18,6 +18,7 @@ import axios from "axios";
  */
 function GuestInfoCard() {
   const { user } = useAuth();
+  const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
   const [profileData, setProfileData] = useState({
     firstName: "",
@@ -30,7 +31,7 @@ function GuestInfoCard() {
     if (user?.sub) {
       const token = localStorage.getItem("token");
       axios
-        .get(`http://localhost:8080/users/email/${user.sub}`, {
+        .get(`${baseURL}/users/email/${user.sub}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
         .then((response) => {

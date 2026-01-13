@@ -42,7 +42,7 @@ export interface PageResponse<T> {
 export const bookingApi = createApi({
   reducerPath: 'bookingApi',
   baseQuery: fetchBaseQuery({
-    baseUrl: 'http://localhost:8080',
+    baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',
     prepareHeaders: (headers) => {
       const token = localStorage.getItem('token');
       if (token) {

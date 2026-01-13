@@ -71,7 +71,7 @@ function CustomerDateFilter({
       <Card elevation={2}>
         <CardContent>
           <Grid container spacing={2} alignItems="flex-end">
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <DatePicker
                 label="Check-in"
                 value={localCheckIn}
@@ -88,7 +88,7 @@ function CustomerDateFilter({
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <DatePicker
                 label="Check-out"
                 value={localCheckOut}
@@ -107,7 +107,7 @@ function CustomerDateFilter({
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <FormControl fullWidth>
                 <InputLabel id="guests-label">Guests</InputLabel>
                 <Select
@@ -126,7 +126,7 @@ function CustomerDateFilter({
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Stack spacing={1}>
                 <Button
                   variant="contained"
