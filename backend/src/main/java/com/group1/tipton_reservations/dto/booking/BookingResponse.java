@@ -24,6 +24,12 @@ public class BookingResponse {
     // User ID who made the booking
     private String userId;
 
+    //Names of User who made the booking
+    private String guestFirstName;
+    private String guestLastName;
+
+    private String guestEmail;
+
     // Assigned room ID
     private String roomId;
 
@@ -35,6 +41,9 @@ public class BookingResponse {
 
     // Room type image URLs
     private List<String> roomTypeImageUrls;
+
+    // Room type max occupancy
+    private Integer roomTypeMaxOccupancy;
 
     // Room number
     private String roomNumber;

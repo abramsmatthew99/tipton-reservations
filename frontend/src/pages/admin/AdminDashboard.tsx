@@ -2,55 +2,222 @@ import { useState, useEffect } from "react";
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardContent,
+  CardHeader,
+  Chip,
   CircularProgress,
   Container,
+  Divider,
   Grid,
+  List,
+  ListItem,
+  ListItemText,
+  Stack,
+  Tab,
+  Tabs,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import { format, parseISO, isSameDay } from "date-fns";
+
+// Icons
+import LoginIcon from "@mui/icons-material/Login";
+import LogoutIcon from "@mui/icons-material/Logout";
+
+// APIs & Types
 import { getThisMonthsRevenue } from "../../apis/stripe";
 import { cancelBooking, getBookings } from "../../apis/booking";
 import { getRooms } from "../../apis/room";
 import { getUsers } from "../../apis/users";
 import { getRoomTypes } from "../../apis/roomtype";
-import BookingTable, {
-  RoomTypeSummary,
-  UserSummary,
-} from "../../components/admin/BookingTable";
 
 import type { BookingResponse } from "../../types/booking";
 import { countBookingsInProgress } from "../../util/helper";
 
-type StatCardProps = {
+// --- Sub-Components ---
+
+/**
+ * Reusable card for displaying high-level metrics (Revenue, Occupancy, etc.).
+ */
+const StatCard = ({
+  label,
+  value,
+  helper,
+}: {
   label: string;
   value: string;
   helper?: string;
+}) => {
+  const theme = useTheme();
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        borderRadius: 2,
+        border: `1px solid ${theme.palette.divider}`,
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+      }}
+    >
+      <CardContent>
+        <Stack spacing={1}>
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            fontWeight={700}
+            letterSpacing={1.1}
+          >
+            {label}
+          </Typography>
+          <Typography variant="h4" fontWeight={800} color="text.primary">
+            {value}
+          </Typography>
+          {helper && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ fontWeight: 500 }}
+            >
+              {helper}
+            </Typography>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
+  );
 };
 
-const StatCard = ({ label, value, helper }: StatCardProps) => (
-  <Card elevation={1}>
-    <CardContent>
-      <Typography variant="overline" color="text.secondary">
-        {label}
-      </Typography>
-      <Typography variant="h4" fontWeight={700}>
-        {value}
-      </Typography>
-      {helper ? (
-        <Typography variant="body2" color="text.secondary">
-          {helper}
-        </Typography>
-      ) : null}
-    </CardContent>
-  </Card>
-);
+/**
+ * Maps booking status enums to UI-friendly colors and labels.
+ */
+const StatusChip = ({ status }: { status: BookingStatus }) => {
+  const config = {
+    CONFIRMED: { color: "success" as const, label: "Confirmed" },
+    PENDING: { color: "warning" as const, label: "Pending" },
+    CANCELLED: { color: "error" as const, label: "Cancelled" },
+    COMPLETED: { color: "info" as const, label: "Completed" },
+    VOIDED: { color: "default" as const, label: "Voided" },
+  }[status];
 
-const formatRevenue = (value: string | number) => {
-  const normalized = typeof value === "number" ? value.toFixed(2) : value;
-  return `$${normalized}`;
+  return (
+    <Chip
+      label={config.label}
+      color={config.color}
+      size="small"
+      variant="soft"
+      sx={{ fontWeight: 600, borderRadius: 1 }}
+    />
+  );
 };
+
+/**
+ * Widget displaying daily operational lists (Arrivals and Departures).
+ * Filters the master booking list for events matching the current date.
+ */
+const DailyActivityWidget = ({ bookings }: { bookings: BookingResponse[] }) => {
+  const [tab, setTab] = useState(0);
+  const theme = useTheme();
+  const today = new Date();
+
+  // Filter logic: Arrivals (Check-in matches today) vs Departures (Check-out matches today)
+  const arrivals = bookings.filter(
+    (b) => isSameDay(parseISO(b.checkInDate), today) && b.status === "CONFIRMED"
+  );
+  const departures = bookings.filter(
+    (b) =>
+      isSameDay(parseISO(b.checkOutDate), today) &&
+      (b.status === "CONFIRMED" || b.status === "COMPLETED")
+  );
+
+  const listData = tab === 0 ? arrivals : departures;
+  const emptyMessage =
+    tab === 0
+      ? "No arrivals scheduled for today."
+      : "No departures scheduled for today.";
+
+  return (
+    <Card
+      elevation={0}
+      sx={{
+        borderRadius: 2,
+        border: `1px solid ${theme.palette.divider}`,
+        height: "100%",
+      }}
+    >
+      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="fullWidth">
+          <Tab
+            icon={<LoginIcon fontSize="small" />}
+            iconPosition="start"
+            label="Arrivals"
+          />
+          <Tab
+            icon={<LogoutIcon fontSize="small" />}
+            iconPosition="start"
+            label="Departures"
+          />
+        </Tabs>
+      </Box>
+      <Box sx={{ maxHeight: 350, overflow: "auto" }}>
+        {listData.length === 0 ? (
+          <Box sx={{ p: 4, textAlign: "center" }}>
+            <Typography variant="body2" color="text.secondary">
+              {emptyMessage}
+            </Typography>
+          </Box>
+        ) : (
+          <List disablePadding>
+            {listData.map((b, i) => (
+              <div key={b.id}>
+                {i > 0 && <Divider />}
+                <ListItem>
+                  <ListItemText
+                    primary={
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        {b.roomTypeName}{" "}
+                        {b.roomNumber ? `(#${b.roomNumber})` : "(Unassigned)"}
+                      </Typography>
+                    }
+                    secondary={
+                      b.guestFirstName && b.guestLastName
+                        ? `${b.guestFirstName} ${b.guestLastName}`
+                        : `Conf: ${b.confirmationNumber}`
+                    }
+                  />
+                  <StatusChip status={b.status} />
+                </ListItem>
+              </div>
+            ))}
+          </List>
+        )}
+      </Box>
+    </Card>
+  );
+};
+
+// --- Helpers ---
+const formatRevenue = (val: string | number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+    Number(val)
+  );
+
+// --- Main View ---
+
 const AdminDashboard = () => {
+  const navigate = useNavigate();
+
+  // Dashboard State
   const [monthRevenue, setMonthRevenue] = useState<string>("0.00");
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
   const [users, setUsers] = useState<UserSummary[] | undefined>(undefined);
@@ -59,158 +226,187 @@ const AdminDashboard = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomTypeSummary[]>([]);
 
+  // Fetch initial dashboard metrics
   useEffect(() => {
-    let isMounted = true;
-    const loadDashboard = async () => {
-      setIsLoading(true);
-      setErrorMessage(null);
+    let mounted = true;
+    const fetchData = async () => {
       try {
-        const [revenueData, bookingsData, roomsData, userData, roomTypesData] =
-          await Promise.all([
-            getThisMonthsRevenue(),
-            getBookings(),
-            getRooms(),
-            getUsers(),
-            getRoomTypes(),
-          ]);
-        console.log(userData);
-
-        if (!isMounted) {
-          return;
+        const [rev, bks, rms] = await Promise.all([
+          getThisMonthsRevenue(),
+          getBookings(),
+          getRooms(),
+        ]);
+        if (mounted) {
+          setMonthRevenue(String(rev));
+          setBookings(Array.isArray(bks) ? bks : bks?.content ?? []);
+          setTotalRooms((Array.isArray(rms) ? rms : rms?.content ?? []).length);
+          setIsLoading(false);
         }
-        const normalizedBookings = Array.isArray(bookingsData)
-          ? bookingsData
-          : bookingsData?.content ?? [];
-        const normalizedRooms = Array.isArray(roomsData)
-          ? roomsData
-          : roomsData?.content ?? [];
-        const normalizedRoomTypes = Array.isArray(roomTypesData)
-          ? roomTypesData
-          : roomTypesData?.content ?? [];
-
-        setMonthRevenue(String(revenueData));
-        setBookings(normalizedBookings);
-        setUsers(userData);
-        setTotalRooms(normalizedRooms.length);
-        setRoomTypes(normalizedRoomTypes);
-      } catch (error) {
-        setErrorMessage("Unable to load dashboard data. Please try again.");
-      } finally {
-        if (isMounted) {
+      } catch (err) {
+        if (mounted) {
+          setErrorMessage("Failed to load dashboard data.");
           setIsLoading(false);
         }
       }
     };
-
-    loadDashboard();
-
+    fetchData();
     return () => {
-      isMounted = false;
+      mounted = false;
     };
   }, []);
 
-  const confirmedBookings = bookings.filter(
-    (booking) => booking.status === "CONFIRMED"
-  );
-  const userNameById = new Map(
-    (Array.isArray(users) ? users : []).map((user) => [
-      String(user.id),
-      `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim(),
-    ])
-  );
-  const userById = new Map(
-    (Array.isArray(users) ? users : []).map((user) => [String(user.id), user])
-  );
-  const roomTypeById = new Map(
-    roomTypes.map((roomType) => [String(roomType.id), roomType])
-  );
-  const inProgressBookings = countBookingsInProgress(bookings);
-  const occupancyRate =
-    totalRooms > 0
-      ? `${((inProgressBookings / totalRooms) * 100).toFixed(1)}%`
-      : "0.0%";
-
-  const revenueLabel = formatRevenue(monthRevenue);
-  const handleCancelBooking = async (bookingId?: string) => {
-    if (!bookingId) {
-      return;
-    }
-    const confirmed = window.confirm(
-      "Cancel this booking? This action cannot be undone."
-    );
-    if (!confirmed) {
-      return;
-    }
-    try {
-      await cancelBooking(bookingId);
-      setBookings((prev) => prev.filter((booking) => booking.id !== bookingId));
-    } catch (error) {
-      console.error("Error cancelling booking:", error);
-    }
-  };
+  const confirmed = bookings.filter((b) => b.status === "CONFIRMED");
+  const active = countBookingsInProgress(bookings);
+  const occupancy =
+    totalRooms > 0 ? ((active / totalRooms) * 100).toFixed(1) : "0.0";
 
   return (
-    <Container maxWidth={false} disableGutters sx={{ pb: 4 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight={700}>
-          Dashboard Overview
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Track revenue, occupancy, and recent booking activity.
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Header  */}
+      <Box
+        sx={{
+          mb: 4,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+        }}
+      >
+        <Typography variant="subtitle2" color="primary.main" fontWeight={600}>
+          {format(new Date(), "EEEE, MMMM do, yyyy")}
         </Typography>
       </Box>
 
       {isLoading ? (
-        <Box sx={{ py: 6, display: "flex", justifyContent: "center" }}>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}>
           <CircularProgress />
         </Box>
       ) : errorMessage ? (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {errorMessage}
-        </Alert>
+        <Alert severity="error">{errorMessage}</Alert>
       ) : (
-        <>
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                label="Monthly Revenue"
-                value={revenueLabel}
-                helper="This month"
+        <Grid container spacing={3}>
+          {/* Left Column: Recent Bookings Table */}
+          <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
+            <Card
+              elevation={0}
+              sx={{
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                height: "100%",
+              }}
+            >
+              <CardHeader
+                title="Recent Bookings"
+                titleTypographyProps={{ variant: "h6", fontWeight: 700 }}
+                action={
+                  <Button
+                    size="small"
+                    onClick={() => navigate("/admin/bookings")}
+                  >
+                    View All
+                  </Button>
+                }
               />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                label="Active Bookings"
-                value={String(confirmedBookings.length)}
-                helper='Status: "CONFIRMED"'
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                label="Total Bookings"
-                value={String(bookings.length)}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard label="Total Rooms" value={String(totalRooms)} />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <StatCard
-                label="Occupancy Rate"
-                value={occupancyRate}
-                helper={`${inProgressBookings} in progress`}
-              />
-            </Grid>
+              <Divider />
+              <TableContainer sx={{ overflowX: "auto" }}>
+                <Table size="small">
+                  <TableHead sx={{ bgcolor: "grey.50" }}>
+                    <TableRow>
+                      <TableCell>Confirmation</TableCell>
+                      <TableCell>Guest</TableCell>
+                      <TableCell>Room</TableCell>
+                      <TableCell>Check-in</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell align="right">Amount</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {bookings.slice(0, 8).map((b) => (
+                      <TableRow key={b.id} hover>
+                        <TableCell
+                          sx={{
+                            fontFamily: "monospace",
+                            fontWeight: 500,
+                            fontSize: "0.875rem",
+                          }}
+                        >
+                          {b.confirmationNumber}
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                            fontWeight={600}
+                            noWrap
+                            sx={{ maxWidth: 120 }}
+                          >
+                            {b.guestFirstName && b.guestLastName
+                              ? `${b.guestFirstName} ${b.guestLastName}`
+                              : "Guest"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {b.roomTypeName}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">
+                            {format(parseISO(b.checkInDate), "MMM d, yyyy")}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <StatusChip status={b.status} />
+                        </TableCell>
+                        <TableCell align="right" fontWeight={600}>
+                          {formatRevenue(b.totalPrice)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Card>
           </Grid>
 
-          <BookingTable
-            bookings={bookings}
-            userNameById={userNameById}
-            userById={userById}
-            roomTypeById={roomTypeById}
-            onCancelBooking={handleCancelBooking}
-          />
-        </>
+          {/* Right Column: KPIs and Operational Widgets */}
+          <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
+            <Stack spacing={3}>
+              {/* KPI Grid */}
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <StatCard
+                    label="Revenue (Mo)"
+                    value={formatRevenue(monthRevenue)}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <StatCard
+                    label="Occupancy"
+                    value={`${occupancy}%`}
+                    helper={`${active} / ${totalRooms} occupied`}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <StatCard
+                    label="Active Bookings"
+                    value={String(confirmed.length)}
+                    helper="Future arrivals"
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <StatCard
+                    label="Total Rooms"
+                    value={String(totalRooms)}
+                    helper="In inventory"
+                  />
+                </Grid>
+              </Grid>
+
+              {/* Arrivals/Departures Widget */}
+              <DailyActivityWidget bookings={bookings} />
+            </Stack>
+          </Grid>
+        </Grid>
       )}
     </Container>
   );

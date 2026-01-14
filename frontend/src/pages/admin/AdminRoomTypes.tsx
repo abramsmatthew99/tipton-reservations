@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import type { ComponentType } from "react";
 import RoomTypeForm from "../../components/RoomTypeForm";
 import {
   createRoomType,
@@ -58,7 +57,14 @@ const AdminRoomTypes = () => {
     ],
   };
 
-  const [createForm, setCreateForm] = useState({
+  const [createForm, setCreateForm] = useState<{
+    name: string;
+    description: string;
+    basePrice: string;
+    maxOccupancy: string;
+    imageUrl: string;
+    amenityIds?: string[];
+  }>({
     name: "",
     description: "",
     basePrice: "",
@@ -70,7 +76,14 @@ const AdminRoomTypes = () => {
   const [editRoomTypeId, setEditRoomTypeId] = useState<string | number | null>(
     null
   );
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    description: string;
+    basePrice: string;
+    maxOccupancy: string;
+    imageUrl: string;
+    amenityIds?: string[];
+  }>({
     name: "",
     description: "",
     basePrice: "",
@@ -195,20 +208,20 @@ const AdminRoomTypes = () => {
       <Paper elevation={2} sx={{ p: { xs: 2, md: 3 } }}>
         <Stack spacing={2}>
           <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
+            display='flex'
+            alignItems='center'
+            justifyContent='space-between'
           >
             <Box>
-              <Typography variant="h6" fontWeight={600}>
+              <Typography variant='h6' fontWeight={600}>
                 Create Room Type
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant='body2' color='text.secondary'>
                 Add a new room category, pricing, and amenities.
               </Typography>
             </Box>
             <Button
-              variant="contained"
+              variant='contained'
               onClick={() => setIsCreateOpen((prev) => !prev)}
             >
               {isCreateOpen ? "Hide Form" : "Add Room Type"}
@@ -216,9 +229,9 @@ const AdminRoomTypes = () => {
           </Box>
           <Collapse in={isCreateOpen}>
             <RoomTypeForm
-              title=""
-              submitLabel="Save"
-              formIdPrefix="create"
+              title=''
+              submitLabel='Save'
+              formIdPrefix='create'
               formState={createForm}
               setFormState={setCreateForm}
               dropdownData={dropdownData}
@@ -232,10 +245,10 @@ const AdminRoomTypes = () => {
       <Paper elevation={2} sx={{ p: { xs: 2, md: 3 } }}>
         <Stack spacing={1.5}>
           <Box>
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant='h6' fontWeight={600}>
               Existing Room Types
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant='body2' color='text.secondary'>
               Manage pricing and occupancy details for each room category.
             </Typography>
           </Box>
@@ -247,13 +260,13 @@ const AdminRoomTypes = () => {
           >
             <TextField
               select
-              size="small"
-              label="Room Type"
+              size='small'
+              label='Room Type'
               value={roomTypeFilterId}
               onChange={(event) => setRoomTypeFilterId(event.target.value)}
               sx={{ minWidth: 220 }}
             >
-              <MenuItem value="all">All room types</MenuItem>
+              <MenuItem value='all'>All room types</MenuItem>
               {roomTypes.map((roomType) => (
                 <MenuItem key={roomType.id} value={String(roomType.id)}>
                   {roomType.name}
@@ -262,13 +275,13 @@ const AdminRoomTypes = () => {
             </TextField>
             <TextField
               select
-              size="small"
-              label="Max Occupancy"
+              size='small'
+              label='Max Occupancy'
               value={occupancyFilter}
               onChange={(event) => setOccupancyFilter(event.target.value)}
               sx={{ minWidth: 180 }}
             >
-              <MenuItem value="all">All occupancies</MenuItem>
+              <MenuItem value='all'>All occupancies</MenuItem>
               {occupancyOptions.map((value) => (
                 <MenuItem key={value} value={value}>
                   {value}
@@ -276,7 +289,7 @@ const AdminRoomTypes = () => {
               ))}
             </TextField>
             <Button
-              variant="text"
+              variant='text'
               disabled={!hasRoomTypeFilters}
               onClick={() => {
                 setRoomTypeFilterId("all");
@@ -287,20 +300,20 @@ const AdminRoomTypes = () => {
             </Button>
           </Stack>
           <TableContainer>
-            <Table size="small">
+            <Table size='small'>
               <TableHead>
                 <TableRow>
                   <TableCell>Name</TableCell>
                   <TableCell>Base Price</TableCell>
                   <TableCell>Max Occupancy</TableCell>
-                  <TableCell align="right">Details</TableCell>
+                  <TableCell align='right'>Details</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredRoomTypes.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4}>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant='body2' color='text.secondary'>
                         {roomTypes.length === 0
                           ? "No room types found."
                           : "No room types match the current filters."}
@@ -319,9 +332,9 @@ const AdminRoomTypes = () => {
                           <TableCell>{roomType.name}</TableCell>
                           <TableCell>{roomType.basePrice ?? "-"}</TableCell>
                           <TableCell>{roomType.maxOccupancy ?? "-"}</TableCell>
-                          <TableCell align="right">
+                          <TableCell align='right'>
                             <IconButton
-                              size="small"
+                              size='small'
                               onClick={() =>
                                 setExpandedId((prev) =>
                                   prev === rowId ? null : rowId
@@ -334,9 +347,9 @@ const AdminRoomTypes = () => {
                               }
                             >
                               {isExpanded ? (
-                                <ExpandLessIcon fontSize="small" />
+                                <ExpandLessIcon fontSize='small' />
                               ) : (
-                                <ExpandMoreIcon fontSize="small" />
+                                <ExpandMoreIcon fontSize='small' />
                               )}
                             </IconButton>
                           </TableCell>
@@ -345,21 +358,21 @@ const AdminRoomTypes = () => {
                           <TableCell colSpan={4} sx={{ p: 0 }}>
                             <Collapse
                               in={isExpanded}
-                              timeout="auto"
+                              timeout='auto'
                               unmountOnExit
                             >
                               <Box sx={{ p: { xs: 2, md: 3 } }}>
                                 <Stack spacing={2}>
                                   <Box>
                                     <Typography
-                                      variant="subtitle2"
+                                      variant='subtitle2'
                                       fontWeight={600}
                                     >
                                       Description
                                     </Typography>
                                     <Typography
-                                      variant="body2"
-                                      color="text.secondary"
+                                      variant='body2'
+                                      color='text.secondary'
                                     >
                                       {roomType.description?.trim() ||
                                         "No description provided."}
@@ -367,7 +380,7 @@ const AdminRoomTypes = () => {
                                   </Box>
                                   <Box>
                                     <Typography
-                                      variant="subtitle2"
+                                      variant='subtitle2'
                                       fontWeight={600}
                                     >
                                       Images
@@ -375,10 +388,10 @@ const AdminRoomTypes = () => {
                                     {roomType.imageUrls?.length ||
                                     roomType.imageUrl ? (
                                       <Stack
-                                        direction="row"
+                                        direction='row'
                                         spacing={1}
                                         mt={1}
-                                        flexWrap="wrap"
+                                        flexWrap='wrap'
                                       >
                                         {(roomType.imageUrls ??
                                           (roomType.imageUrl
@@ -386,7 +399,7 @@ const AdminRoomTypes = () => {
                                             : []))!.map((url, urlIndex) => (
                                           <Box
                                             key={`${rowId}-image-${urlIndex}`}
-                                            component="img"
+                                            component='img'
                                             src={url}
                                             alt={`${roomType.name} ${
                                               urlIndex + 1
@@ -404,8 +417,8 @@ const AdminRoomTypes = () => {
                                       </Stack>
                                     ) : (
                                       <Typography
-                                        variant="body2"
-                                        color="text.secondary"
+                                        variant='body2'
+                                        color='text.secondary'
                                       >
                                         No image.
                                       </Typography>
@@ -413,16 +426,16 @@ const AdminRoomTypes = () => {
                                   </Box>
                                   <Box>
                                     <Typography
-                                      variant="subtitle2"
+                                      variant='subtitle2'
                                       fontWeight={600}
                                     >
                                       Amenities
                                     </Typography>
                                     {selectedAmenityIds.length > 0 ? (
                                       <Stack
-                                        direction="row"
+                                        direction='row'
                                         spacing={1}
-                                        flexWrap="wrap"
+                                        flexWrap='wrap'
                                       >
                                         {selectedAmenityIds.map((amenityId) => {
                                           const amenity = amenities.find(
@@ -437,17 +450,17 @@ const AdminRoomTypes = () => {
                                               amenity.iconCode ?? ""
                                             );
                                           const IconComponent = iconName
-                                            ? MuiIcons[iconName]
+                                            ? (MuiIcons as any)[iconName]
                                             : null;
 
                                           return (
                                             <Chip
                                               key={amenityId}
-                                              size="small"
+                                              size='small'
                                               label={amenity.name}
                                               icon={
                                                 IconComponent ? (
-                                                  <IconComponent fontSize="small" />
+                                                  <IconComponent fontSize='small' />
                                                 ) : undefined
                                               }
                                             />
@@ -456,21 +469,21 @@ const AdminRoomTypes = () => {
                                       </Stack>
                                     ) : (
                                       <Typography
-                                        variant="body2"
-                                        color="text.secondary"
+                                        variant='body2'
+                                        color='text.secondary'
                                       >
                                         No amenities assigned.
                                       </Typography>
                                     )}
                                   </Box>
                                   <Box
-                                    display="flex"
-                                    justifyContent="flex-end"
+                                    display='flex'
+                                    justifyContent='flex-end'
                                     pt={1}
                                     gap={1}
                                   >
                                     <Button
-                                      variant="outlined"
+                                      variant='outlined'
                                       onClick={() =>
                                         handleEditToggle(roomType, rowId)
                                       }
@@ -480,8 +493,8 @@ const AdminRoomTypes = () => {
                                         : "Edit Room Type"}
                                     </Button>
                                     <Button
-                                      variant="outlined"
-                                      color="error"
+                                      variant='outlined'
+                                      color='error'
                                       disabled={roomType.id == null}
                                       onClick={() => {
                                         if (roomType.id == null) return;
@@ -498,8 +511,8 @@ const AdminRoomTypes = () => {
                                   <Collapse in={isEditing} unmountOnExit>
                                     <Box sx={{ pt: 2 }}>
                                       <RoomTypeForm
-                                        title="Edit Room Type"
-                                        submitLabel="Update"
+                                        title='Edit Room Type'
+                                        submitLabel='Update'
                                         formIdPrefix={`edit-${rowId}`}
                                         formState={editForm}
                                         setFormState={setEditForm}

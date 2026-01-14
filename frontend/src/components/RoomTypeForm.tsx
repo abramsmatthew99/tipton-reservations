@@ -33,8 +33,8 @@ type DropdownData = {
 type AmenityOption = {
   id: string | number;
   name?: string;
-  iconCode?: String;
-  description?: String;
+  iconCode?: string;
+  description?: string;
 };
 
 type RoomTypeFormProps = {
@@ -202,7 +202,7 @@ function RoomTypeForm({
                   );
                   const label = match?.name ?? id;
                   const iconName = resolveAmenityIconName(
-                    match?.iconCode ?? ""
+                    String(match?.iconCode ?? "")
                   );
                   const IconComponent = iconName
                     ? (

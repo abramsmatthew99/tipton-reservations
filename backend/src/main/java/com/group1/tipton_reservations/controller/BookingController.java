@@ -4,6 +4,8 @@ import com.group1.tipton_reservations.dto.booking.BookingResponse;
 import com.group1.tipton_reservations.dto.booking.ConfirmBookingRequest;
 import com.group1.tipton_reservations.dto.booking.CreateBookingRequest;
 import com.group1.tipton_reservations.dto.booking.ModifyBookingRequest;
+import com.group1.tipton_reservations.dto.booking.ModifyBookingPaymentIntentRequest;
+import com.group1.tipton_reservations.dto.payment.PaymentIntentResponse;
 import com.group1.tipton_reservations.security.HotelUserPrincipal;
 import com.group1.tipton_reservations.service.BookingService;
 import jakarta.validation.Valid;
@@ -16,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -110,35 +113,72 @@ public class BookingController {
 
     /**
      * Modifies an existing booking's dates.
+     * Handles ResponseStatusException from service to properly return error message to client.
      *
      * @param id the booking ID
      * @param request the modification request containing new dates
      * @param authentication the authenticated user (injected by Spring Security)
-     * @return the updated booking response
+     * @return the updated booking response or error details
      */
     @PutMapping("/{id}")
-    public ResponseEntity<BookingResponse> modifyBooking(
+    public ResponseEntity<?> modifyBooking(
             @PathVariable String id,
             @Valid @RequestBody ModifyBookingRequest request,
             Authentication authentication) {
-        BookingResponse response = bookingService.modifyBooking(id, request);
-        return ResponseEntity.ok(response);
+        try {
+            BookingResponse response = bookingService.modifyBooking(id, request);
+            return ResponseEntity.ok(response);
+        } catch (ResponseStatusException ex) {
+            // Return error message in response body for frontend to display
+            return ResponseEntity
+                    .status(ex.getStatusCode())
+                    .body(java.util.Map.of("message", ex.getReason()));
+        }
+    }
+
+    /**
+     * Creates a PaymentIntent for a booking modification that increases the price.
+     *
+     * @param id the booking ID
+     * @param request the modification request containing new dates
+     * @param authentication the authenticated user (injected by Spring Security)
+     * @return the payment intent response or error details
+     */
+    @PostMapping("/{id}/modify-payment-intent")
+    public ResponseEntity<?> createModifyPaymentIntent(
+            @PathVariable String id,
+            @Valid @RequestBody ModifyBookingPaymentIntentRequest request,
+            Authentication authentication) {
+        try {
+            PaymentIntentResponse response = bookingService.createModifyPaymentIntent(id, request);
+            return ResponseEntity.ok(response);
+        } catch (ResponseStatusException ex) {
+            return ResponseEntity
+                    .status(ex.getStatusCode())
+                    .body(java.util.Map.of("message", ex.getReason()));
+        }
     }
 
     /**
      * Cancels a booking.
-     * TODO: Currently changes the booking status to CANCELLED; consider deleting the entire booking (in service layer)
      *
      * @param id the booking ID
      * @param authentication the authenticated user (injected by Spring Security)
-     * @return the cancelled booking response
+     * @return the cancelled booking response or error details
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<BookingResponse> cancelBooking(
+    public ResponseEntity<?> cancelBooking(
             @PathVariable String id,
             Authentication authentication) {
-        BookingResponse response = bookingService.cancelBooking(id);
-        return ResponseEntity.ok(response);
+        try {
+            BookingResponse response = bookingService.cancelBooking(id);
+            return ResponseEntity.ok(response);
+        } catch (ResponseStatusException ex) {
+            // Return error message in response body for frontend to display
+            return ResponseEntity
+                    .status(ex.getStatusCode())
+                    .body(java.util.Map.of("message", ex.getReason()));
+        }
     }
 
     /**
