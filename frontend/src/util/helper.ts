@@ -1,4 +1,4 @@
-import { differenceInDays, format, parseISO } from 'date-fns';
+import { differenceInDays, format, parseISO, startOfDay } from 'date-fns';
 
 /**
  * Calculate number of nights between two dates
@@ -20,4 +20,26 @@ export const calculateNights = (checkIn: string, checkOut: string): number => {
 export const formatDate = (dateString: string): string => {
   const date = parseISO(dateString);
   return format(date, 'EEE, MMM d, yyyy');
+};
+
+/**
+ * Count bookings in progress for the provided date (defaults to today).
+ * In-progress means checkInDate <= date < checkOutDate.
+ */
+export const countBookingsInProgress = (
+  bookings: Array<{ checkInDate: string; checkOutDate: string }>,
+  date: Date = new Date()
+): number => {
+  const current = startOfDay(date);
+
+  return bookings.reduce((count, booking) => {
+    const checkIn = startOfDay(parseISO(booking.checkInDate));
+    const checkOut = startOfDay(parseISO(booking.checkOutDate));
+
+    if (current >= checkIn && current < checkOut) {
+      return count + 1;
+    }
+
+    return count;
+  }, 0);
 };

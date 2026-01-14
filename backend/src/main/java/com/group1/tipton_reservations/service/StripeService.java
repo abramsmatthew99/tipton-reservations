@@ -3,8 +3,11 @@ package com.group1.tipton_reservations.service;
 import com.group1.tipton_reservations.model.Booking;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
+import com.stripe.model.BalanceTransaction;
+import com.stripe.model.Charge;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.Refund;
+import com.stripe.param.ChargeListParams;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,6 +15,8 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 /**
  * Service for handling Stripe payment operations
@@ -93,6 +98,43 @@ public class StripeService {
     public PaymentIntent retrievePaymentIntent(String paymentIntentId) throws StripeException {
         return PaymentIntent.retrieve(paymentIntentId);
     }
+
+    /**
+    * Retrieves the net revenue for the current month (month-to-date),
+    * calculated as total charge amounts minus Stripe fees and refunds.
+    *
+    * @return Net revenue for the current month in dollars and cents
+    * @throws StripeException if Stripe API access fails
+    */
+    public BigDecimal getCurrentMonthRevenue() throws StripeException {
+
+        long startOfMonth = LocalDate.now(ZoneOffset.UTC)
+                .withDayOfMonth(1)
+                .atStartOfDay()
+                .toEpochSecond(ZoneOffset.UTC);
+
+        ChargeListParams params = ChargeListParams.builder()
+                .setCreated(ChargeListParams.Created.builder()
+                        .setGte(startOfMonth)
+                        .build())
+                .setLimit(100L)
+                .addExpand("data.balance_transaction") // IMPORTANT
+                .build();
+
+        long total = 0;
+
+        for (Charge charge : Charge.list(params).getData()) {
+            if (charge.getPaid() && !charge.getRefunded()) {
+                BalanceTransaction bt = charge.getBalanceTransactionObject();
+                total += bt.getNet(); // NET revenue (fees already subtracted)
+            }
+        }
+
+        return BigDecimal.valueOf(total)
+                .divide(BigDecimal.valueOf(100))
+                .setScale(2);
+    }
+
 
     /**
      * Creates a refund for a PaymentIntent
