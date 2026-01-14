@@ -204,7 +204,7 @@ const AdminDashboard = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       
-      {/* Header with current date context */}
+      {/* Header  */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
         <Typography variant="subtitle2" color="primary.main" fontWeight={600}>
           {format(new Date(), 'EEEE, MMMM do, yyyy')}
@@ -218,10 +218,7 @@ const AdminDashboard = () => {
       ) : (
         <Grid container spacing={3}>
           
-          {/* Left Column: Recent Bookings Table
-            minWidth: 0 is required to prevent the table from overflowing the Grid item 
-            and breaking the 50/50 layout flexbox constraints.
-          */}
+          {/* Left Column: Recent Bookings Table */}
           <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
             <Card elevation={0} sx={{ borderRadius: 2, border: '1px solid', borderColor: 'divider', height: '100%' }}>
               <CardHeader 

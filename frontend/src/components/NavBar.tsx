@@ -14,7 +14,7 @@ export default function Navbar() {
 
     return (
         <AppBar position="static" color="primary" elevation={0}>
-            <Container maxWidth="xl">
+            <Container maxWidth="false" sx={{ px: 3}}>
                 <Toolbar disableGutters>
                     {/* BRANDING */}
                     <Typography
