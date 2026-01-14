@@ -34,8 +34,6 @@ function SearchPage() {
     maxPrice: 0,
     amenityIds: [] as Array<string | number>,
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const checkInDate = searchParams.get("checkInDate") || "";
@@ -107,7 +105,7 @@ function SearchPage() {
         ...roomType,
         amenities: (roomType.amenityIds ?? [])
           .map((id) => amenitiesById.get(String(id)))
-          .filter(Boolean),
+          .filter((amenity): amenity is Amenity => amenity !== undefined),
       }));
       setAmenities(amenitiesRes);
       setRoomTypes(enrichedRoomTypes);

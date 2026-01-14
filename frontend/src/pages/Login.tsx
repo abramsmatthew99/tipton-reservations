@@ -20,6 +20,7 @@ import GoogleIcon from '@mui/icons-material/Google';
 
 
 export default function Login() {
+    const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
@@ -127,7 +128,7 @@ export default function Login() {
                                 fullWidth
                                 variant="outlined"
                                 startIcon={<GoogleIcon />}
-                                href="http://localhost:8080/oauth2/authorization/google"
+                                href={`${baseURL}/oauth2/authorization/google`}
                                 sx={{ mb: 2, textTransform: 'none' }}
                             >
                                 Sign in with Google

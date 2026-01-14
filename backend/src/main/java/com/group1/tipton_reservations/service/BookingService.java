@@ -2,14 +2,20 @@ package com.group1.tipton_reservations.service;
 
 import com.group1.tipton_reservations.dto.booking.BookingResponse;
 import com.group1.tipton_reservations.dto.booking.CreateBookingRequest;
+import com.group1.tipton_reservations.dto.booking.ModifyBookingPaymentIntentRequest;
 import com.group1.tipton_reservations.dto.booking.ModifyBookingRequest;
+import com.group1.tipton_reservations.dto.payment.PaymentIntentResponse;
 import com.group1.tipton_reservations.model.Booking;
+import com.group1.tipton_reservations.model.Payment;
 import com.group1.tipton_reservations.model.Room;
 import com.group1.tipton_reservations.model.RoomType;
 import com.group1.tipton_reservations.model.User;
 import com.group1.tipton_reservations.model.enums.BookingStatus;
+import com.group1.tipton_reservations.model.enums.PaymentStatus;
 import com.group1.tipton_reservations.repository.BookingRepository;
+import com.group1.tipton_reservations.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -20,7 +26,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
@@ -29,9 +39,15 @@ import java.util.UUID;
 // TODO: replace ResponseStatusException with appropriate custom exceptions + GlobalExceptionHandler
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BookingService {
 
+    // Hotel timezone - all booking operations use this timezone for consistency
+    private static final ZoneId HOTEL_TIMEZONE = ZoneId.of("America/Los_Angeles"); // Pacific Standard Time (for CA)
+    private static final int CHECK_IN_HOUR = 15; // 3:00 PM check-in time
+
     private final BookingRepository bookingRepository;
+    private final PaymentRepository paymentRepository;
     private final UserService userService;
     private final RoomTypeService roomTypeService;
     private final RoomService roomService;
@@ -197,80 +213,72 @@ public class BookingService {
                         "Booking not found with ID: " + bookingId
                 ));
 
-        // verify booking is confirmed (only confirmed bookings can be modified)
-        if (booking.getStatus() != BookingStatus.CONFIRMED) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Can only modify confirmed bookings"
-            );
-        }
-
-        // verify check-in date hasn't passed (can't modify past/current bookings)
-        if (booking.getCheckInDate().isBefore(LocalDate.now()) ||
-            booking.getCheckInDate().isEqual(LocalDate.now())) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Cannot modify a booking that has already started or is starting today"
-            );
-        }
-
-        // validate new date range
-        validateDateRange(request.getCheckInDate(), request.getCheckOutDate());
-
-        // check if assigned room is available for new dates
-        // TODO: Consider allowing room reassignment if current room is unavailable
-        // currently fails if same room is booked for new dates
-        if (booking.getRoomId() != null) {
-            List<Booking> overlappingBookings = bookingRepository.findOverlappingBookings(
-                    booking.getRoomId(),
-                    request.getCheckInDate(),
-                    request.getCheckOutDate()
-            );
-
-            // filter out the current booking from overlapping bookings
-            overlappingBookings = overlappingBookings.stream()
-                    .filter(b -> !b.getId().equals(bookingId))
-                    .toList();
-
-            if (!overlappingBookings.isEmpty()) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "The assigned room is not available for the new dates"
-                );
-            }
-        }
+        BigDecimal newTotalPrice = calculateNewTotalForModification(
+                booking,
+                request.getCheckInDate(),
+                request.getCheckOutDate(),
+                request.getNumberOfGuests()
+        );
 
         // update booking dates
         booking.setCheckInDate(request.getCheckInDate());
         booking.setCheckOutDate(request.getCheckOutDate());
+        booking.setNumberOfGuests(request.getNumberOfGuests());
 
         // recalculate total price based on new dates
-        RoomType roomType = roomTypeService.findRoomTypeById(booking.getRoomTypeId());
-        BigDecimal newTotalPrice = calculateTotalPrice(
-                roomType.getBasePrice(),
-                request.getCheckInDate(),
-                request.getCheckOutDate()
-        );
+        BigDecimal oldTotalPrice = booking.getTotalPrice();
         booking.setTotalPrice(newTotalPrice);
 
-        // TODO: Once payment logic is implemented:
-        // - If newTotalPrice > oldTotalPrice: charge the difference to the payment method
-        // - If newTotalPrice < oldTotalPrice: issue partial refund
-        // - Send email notification about the modification and price change
+        // Handle price differences with Stripe
+        if (!newTotalPrice.equals(oldTotalPrice)) {
+            BigDecimal priceDifference = newTotalPrice.subtract(oldTotalPrice);
+
+            if (priceDifference.compareTo(BigDecimal.ZERO) < 0) {
+                // Price decreased - issue partial refund across payments
+                refundPaymentsForBooking(booking, priceDifference.abs());
+                log.info("Partial refund of ${} issued for booking {}",
+                        priceDifference.abs(), bookingId);
+            } else if (priceDifference.compareTo(BigDecimal.ZERO) > 0) {
+                // Price increased - require payment intent and verify
+                String paymentIntentId = request.getPaymentIntentId();
+                if (paymentIntentId == null || paymentIntentId.isBlank()) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "Additional payment is required to extend this booking"
+                    );
+                }
+
+                verifyPaymentIntentAmount(paymentIntentId, priceDifference);
+
+                Payment payment = new Payment();
+                payment.setBookingId(booking.getId());
+                payment.setUserId(booking.getUserId());
+                payment.setStripePaymentIntentId(paymentIntentId);
+                payment.setAmount(priceDifference);
+                payment.setCurrency("usd");
+                payment.setStatus(PaymentStatus.COMPLETED);
+                paymentRepository.save(payment);
+            }
+        }
 
         // save updated booking
-        Booking updatedBooking = bookingRepository.save(booking);
+        Booking updatedBooking = saveBookingWithRetry(
+                booking,
+                "Failed to update booking after processing modification payments. Please contact support with booking confirmation: " +
+                        booking.getConfirmationNumber()
+        );
 
         return mapToResponse(updatedBooking);
     }
 
     /**
      * Cancels a booking.
-     * Requires user to own the booking or be an admin
+     * Requires user to own the booking or be an admin.
+     * Enforces 24-hour cancellation policy (using hotel's local timezone) and processes full refund.
      *
      * @param bookingId the booking ID
      * @return the cancelled booking response
-     * @throws ResponseStatusException if booking not found or already cancelled
+     * @throws ResponseStatusException if booking not found, already cancelled, or within 24 hours of check-in
      */
     @PreAuthorize("@bookingSecurity.isOwner(#bookingId)")
     public BookingResponse cancelBooking(String bookingId) {
@@ -281,24 +289,96 @@ public class BookingService {
                         "Booking not found with ID: " + bookingId
                 ));
 
-        // verify booking is not already cancelled
-        if (booking.getStatus() == BookingStatus.CANCELLED) {
+        // verify booking is CONFIRMED (only confirmed bookings can be cancelled)
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Booking is already cancelled"
+                    "Only CONFIRMED bookings can be cancelled. Current status: " + booking.getStatus()
             );
         }
 
-        // update status to cancelled
-        // implicitly makes room available for new bookings (repository checks for "PENDING" or "CONFIRMED" for bookings)
+        // Enforce 24-hour cancellation policy using HOTEL'S local timezone
+        // This ensures consistent policy enforcement regardless of user's timezone
+        ZonedDateTime nowHotelTime = ZonedDateTime.now(HOTEL_TIMEZONE);
+        ZonedDateTime checkInDateTime = booking.getCheckInDate()
+                .atTime(CHECK_IN_HOUR, 0)
+                .atZone(HOTEL_TIMEZONE);
+        long hoursUntilCheckIn = ChronoUnit.HOURS.between(nowHotelTime, checkInDateTime);
+
+        if (hoursUntilCheckIn < 24) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a z");
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cancellations must be made at least 24 hours before check-in time (hotel local time). " +
+                    "Check-in is at " + checkInDateTime.format(formatter)
+            );
+        }
+
+        // Process Stripe refund for full remaining paid amount
+        refundPaymentsForBooking(booking, booking.getTotalPrice());
+
+        // Update status to cancelled
+        // Implicitly makes room available for new bookings (repository checks for "PENDING" or "CONFIRMED")
         booking.setStatus(BookingStatus.CANCELLED);
 
-        // TODO: refund?
+        // Save updated booking
+        Booking cancelledBooking = saveBookingWithRetry(
+                booking,
+                "Refund processed but booking cancellation could not be saved. Please contact support with booking confirmation: " +
+                        booking.getConfirmationNumber()
+        );
 
-        // save updated booking
-        Booking cancelledBooking = bookingRepository.save(booking);
+        log.info("Booking {} cancelled successfully. Refund processed: {}",
+                bookingId, booking.getPaymentId() != null);
 
         return mapToResponse(cancelledBooking);
+    }
+
+    /**
+     * Creates a PaymentIntent for booking modification if price increases.
+     *
+     * @param bookingId the booking ID
+     * @param request modification request with new dates
+     * @return PaymentIntentResponse containing client secret
+     */
+    @PreAuthorize("@bookingSecurity.isOwner(#bookingId)")
+    public PaymentIntentResponse createModifyPaymentIntent(
+            String bookingId,
+            ModifyBookingPaymentIntentRequest request) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Booking not found with ID: " + bookingId
+                ));
+
+        BigDecimal newTotalPrice = calculateNewTotalForModification(
+                booking,
+                request.getCheckInDate(),
+                request.getCheckOutDate(),
+                request.getNumberOfGuests()
+        );
+
+        BigDecimal priceDifference = newTotalPrice.subtract(booking.getTotalPrice());
+        if (priceDifference.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No additional payment is required for the selected dates"
+            );
+        }
+
+        try {
+            String clientSecret = stripeService.createPaymentIntentForAmount(
+                    priceDifference,
+                    "usd",
+                    booking
+            ).getClientSecret();
+            return new PaymentIntentResponse(clientSecret);
+        } catch (com.stripe.exception.StripeException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Failed to create payment intent: " + e.getMessage()
+            );
+        }
     }
 
     /**
@@ -406,6 +486,17 @@ public class BookingService {
         // save updated booking
         Booking confirmedBooking = bookingRepository.save(booking);
 
+        if (paymentRepository.findByStripePaymentIntentId(paymentIntentId).isEmpty()) {
+            Payment payment = new Payment();
+            payment.setBookingId(confirmedBooking.getId());
+            payment.setUserId(confirmedBooking.getUserId());
+            payment.setStripePaymentIntentId(paymentIntentId);
+            payment.setAmount(confirmedBooking.getTotalPrice());
+            payment.setCurrency("usd");
+            payment.setStatus(PaymentStatus.COMPLETED);
+            paymentRepository.save(payment);
+        }
+
         return mapToResponse(confirmedBooking);
     }
 
@@ -443,6 +534,212 @@ public class BookingService {
     private BigDecimal calculateTotalPrice(BigDecimal basePrice, LocalDate checkInDate, LocalDate checkOutDate) {
         long numberOfNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
         return basePrice.multiply(BigDecimal.valueOf(numberOfNights));
+    }
+
+    private BigDecimal calculateNewTotalForModification(
+            Booking booking,
+            LocalDate checkInDate,
+            LocalDate checkOutDate,
+            Integer numberOfGuests) {
+        // verify booking is confirmed (only confirmed bookings can be modified)
+        if (booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Can only modify confirmed bookings"
+            );
+        }
+
+        // Enforce 24-hour policy using hotel timezone (same as cancel)
+        ZonedDateTime nowHotelTime = ZonedDateTime.now(HOTEL_TIMEZONE);
+        ZonedDateTime checkInDateTime = booking.getCheckInDate()
+                .atTime(CHECK_IN_HOUR, 0)
+                .atZone(HOTEL_TIMEZONE);
+        long hoursUntilCheckIn = ChronoUnit.HOURS.between(nowHotelTime, checkInDateTime);
+
+        if (hoursUntilCheckIn < 24) {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy 'at' h:mm a z");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Modifications must be made at least 24 hours before check-in time (hotel local time). " +
+                            "Check-in is at " + checkInDateTime.format(formatter));
+        }
+
+        // verify check-in date hasn't passed (can't modify past/current bookings)
+        LocalDate todayHotel = LocalDate.now(HOTEL_TIMEZONE);
+        if (booking.getCheckInDate().isBefore(todayHotel) ||
+            booking.getCheckInDate().isEqual(todayHotel)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot modify a booking that has already started or is starting today"
+            );
+        }
+
+        // validate new date range
+        validateDateRange(checkInDate, checkOutDate);
+
+        // check if assigned room is available for new dates
+        if (booking.getRoomId() != null) {
+            List<Booking> overlappingBookings = bookingRepository.findOverlappingBookings(
+                    booking.getRoomId(),
+                    checkInDate,
+                    checkOutDate
+            );
+
+            // filter out the current booking from overlapping bookings
+            overlappingBookings = overlappingBookings.stream()
+                    .filter(b -> !b.getId().equals(booking.getId()))
+                    .toList();
+
+            if (!overlappingBookings.isEmpty()) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "The assigned room is not available for the new dates"
+                );
+            }
+        }
+
+        RoomType roomType = roomTypeService.findRoomTypeById(booking.getRoomTypeId());
+
+        if (numberOfGuests == null || numberOfGuests < 1) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Number of guests must be at least 1"
+            );
+        }
+
+        if (numberOfGuests > roomType.getMaxOccupancy()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    String.format("Number of guests (%d) exceeds maximum occupancy (%d) for this room type",
+                            numberOfGuests, roomType.getMaxOccupancy())
+            );
+        }
+
+        return calculateTotalPrice(roomType.getBasePrice(), checkInDate, checkOutDate);
+    }
+
+    private void verifyPaymentIntentAmount(String paymentIntentId, BigDecimal expectedAmount) {
+        try {
+            com.stripe.model.PaymentIntent paymentIntent = stripeService.retrievePaymentIntent(paymentIntentId);
+
+            if (!"succeeded".equals(paymentIntent.getStatus())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Payment not confirmed by Stripe. Payment status: " + paymentIntent.getStatus()
+                );
+            }
+
+            long expectedAmountInCents = expectedAmount.multiply(new BigDecimal("100")).longValue();
+            if (!paymentIntent.getAmount().equals(expectedAmountInCents)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Payment amount mismatch. Expected: " + expectedAmountInCents + " cents, Got: " + paymentIntent.getAmount() + " cents"
+                );
+            }
+        } catch (com.stripe.exception.StripeException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Failed to verify payment with Stripe: " + e.getMessage()
+            );
+        }
+    }
+
+    private void refundPaymentsForBooking(Booking booking, BigDecimal refundAmount) {
+        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        List<Payment> payments = paymentRepository.findByBookingIdOrderByCreatedAtDesc(booking.getId());
+        BigDecimal remaining = refundAmount;
+
+        for (Payment payment : payments) {
+            if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+                break;
+            }
+
+            if (payment.getStatus() == PaymentStatus.REFUNDED || payment.getStatus() == PaymentStatus.FAILED) {
+                continue;
+            }
+
+            BigDecimal refundedAmount = payment.getRefundedAmount() != null
+                    ? payment.getRefundedAmount()
+                    : BigDecimal.ZERO;
+            BigDecimal remainingForPayment = payment.getAmount().subtract(refundedAmount);
+
+            if (remainingForPayment.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+
+            BigDecimal refundForPayment = remaining.min(remainingForPayment);
+            long refundAmountInCents = refundForPayment.multiply(new BigDecimal("100")).longValue();
+
+            try {
+                stripeService.createRefund(payment.getStripePaymentIntentId(), refundAmountInCents);
+            } catch (com.stripe.exception.StripeException e) {
+                log.error("Stripe refund failed for booking {}: {}", booking.getId(), e.getMessage());
+                throw new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Failed to process refund. Please contact support with booking confirmation: " +
+                        booking.getConfirmationNumber()
+                );
+            }
+
+            BigDecimal newRefundedAmount = refundedAmount.add(refundForPayment);
+            payment.setRefundedAmount(newRefundedAmount);
+            payment.setRefundedAt(LocalDateTime.now());
+            if (newRefundedAmount.compareTo(payment.getAmount()) >= 0) {
+                payment.setStatus(PaymentStatus.REFUNDED);
+            } else {
+                payment.setStatus(PaymentStatus.PARTIALLY_REFUNDED);
+            }
+            paymentRepository.save(payment);
+
+            remaining = remaining.subtract(refundForPayment);
+        }
+
+        if (remaining.compareTo(BigDecimal.ZERO) > 0) {
+            if (booking.getPaymentId() != null && payments.isEmpty()) {
+                try {
+                    long refundAmountInCents = remaining.multiply(new BigDecimal("100")).longValue();
+                    stripeService.createRefund(booking.getPaymentId(), refundAmountInCents);
+                    remaining = BigDecimal.ZERO;
+                } catch (com.stripe.exception.StripeException e) {
+                    log.error("Stripe refund failed for booking {}: {}", booking.getId(), e.getMessage());
+                    throw new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "Failed to process refund. Please contact support with booking confirmation: " +
+                            booking.getConfirmationNumber()
+                    );
+                }
+            }
+        }
+
+        if (remaining.compareTo(BigDecimal.ZERO) > 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Unable to process full refund. Please contact support with booking confirmation: " +
+                    booking.getConfirmationNumber()
+            );
+        }
+    }
+
+    private Booking saveBookingWithRetry(Booking booking, String errorMessage) {
+        int attempts = 0;
+        RuntimeException lastException = null;
+
+        while (attempts < 3) {
+            try {
+                return bookingRepository.save(booking);
+            } catch (RuntimeException e) {
+                lastException = e;
+                attempts++;
+            }
+        }
+
+        log.error("Booking save failed after retries for booking {}: {}",
+                booking.getId(),
+                lastException != null ? lastException.getMessage() : "unknown error");
+
+        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, errorMessage);
     }
 
     /**
@@ -485,6 +782,7 @@ public class BookingService {
             RoomType roomType = roomTypeService.findRoomTypeById(booking.getRoomTypeId());
             response.setRoomTypeName(roomType.getName());
             response.setRoomTypeImageUrls(roomType.getImageUrls());
+            response.setRoomTypeMaxOccupancy(roomType.getMaxOccupancy());
         } catch (Exception e) {
             // Fallback to room type ID if fetch fails
             response.setRoomTypeName(booking.getRoomTypeId());

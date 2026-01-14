@@ -181,7 +181,11 @@ function BookingCard({ booking }: BookingCardProps) {
             <Typography variant='caption' color='text.secondary'>
               {nights} {nights === 1 ? "night" : "nights"}
             </Typography>
-            <Typography variant='h6' sx={{ color: '#bc6c25', fontWeight: 600 }}>
+            <Typography
+              variant='h6'
+              color='secondary.main'
+              sx={{ fontWeight: 600 }}
+            >
               ${parseFloat(booking.totalPrice).toFixed(2)}
             </Typography>
           </Box>

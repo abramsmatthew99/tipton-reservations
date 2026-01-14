@@ -22,6 +22,7 @@ export type BookingResponse = {
   roomTypeId: string;
   roomTypeName: string; // Human-readable room type name (e.g., "Standard Room", "Deluxe Suite")
   roomTypeImageUrls?: string[]; // Array of image URLs for the room type
+  roomTypeMaxOccupancy?: number;
   roomNumber: string; // Room number (e.g., "101", "205")
   checkInDate: string; // ISO date string
   checkOutDate: string; // ISO date string
