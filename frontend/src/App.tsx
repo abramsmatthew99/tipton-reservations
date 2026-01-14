@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 import "./App.css";
 import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
@@ -18,8 +18,32 @@ import PrivateRoute from "./components/PrivateRoute";
 import AuthSuccess from "./pages/AuthSuccess";
 import LandingPage from "./pages/Landing";
 import Footer from "./components/Footer";
-import { Box } from '@mui/material';
+import { Box, Button, Typography } from '@mui/material';
 import NavBar  from './components/NavBar';
+
+function NotFound() {
+  return (
+    <Box
+      sx={{
+        maxWidth: 720,
+        mx: "auto",
+        px: 3,
+        py: 8,
+        textAlign: "center",
+      }}
+    >
+      <Typography variant="h3" sx={{ fontWeight: 700, mb: 1 }}>
+        Page Not Found
+      </Typography>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+        The page you are looking for doesn’t exist or may have moved.
+      </Typography>
+      <Button variant="contained" component={Link} to="/">
+        Back to Home
+      </Button>
+    </Box>
+  );
+}
 
 function App() {
   return (
@@ -61,6 +85,8 @@ function App() {
                 <Route path='profile' element={<Profile />} />
               </Route>
             </Route>
+
+            <Route path="*" element={<NotFound />} />
 
           </Routes>
         </Box>
