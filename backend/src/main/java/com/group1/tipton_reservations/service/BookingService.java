@@ -32,8 +32,10 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 // TODO: replace ResponseStatusException with appropriate custom exceptions + GlobalExceptionHandler
@@ -203,8 +205,20 @@ public class BookingService {
     @PreAuthorize("hasRole('ADMIN')")
     public List<BookingResponse> getAllBookings() {
         List<Booking> bookings = bookingRepository.findAll();
+
+        List<String> userIds = bookings.stream()
+                .map(Booking::getUserId)
+                .distinct()
+                .toList();
+
+        List<User> users = userService.findUsersByIds(userIds);
+
+        Map<String, User> userMap = users.stream()
+                .collect(Collectors.toMap(User::getId, user -> user));
+
+        // Map bookings to response, passing the specific user object
         return bookings.stream()
-                .map(this::mapToResponse)
+                .map(booking -> mapToResponse(booking, userMap.get(booking.getUserId())))
                 .toList();
     }
 
@@ -777,37 +791,56 @@ public class BookingService {
     }
 
     /**
-     * Maps a Booking entity to a BookingResponse DTO.
-     * Fetches room type name and room number for better UX.
-     *
-     * @param booking the booking entity
-     * @return the booking response DTO
+     * Standard mapping - fetches user from DB individually.
+     * Used for single booking operations (getById, create, etc.)
      */
     private BookingResponse mapToResponse(Booking booking) {
+        return mapToResponse(booking, null);
+    }
+
+    /**
+     * Optimized mapping - uses provided user object if available.
+     * Used for bulk operations to avoid N+1 queries.
+     */
+    private BookingResponse mapToResponse(Booking booking, User preFetchedUser) {
         BookingResponse response = new BookingResponse();
         response.setId(booking.getId());
         response.setConfirmationNumber(booking.getConfirmationNumber());
         response.setUserId(booking.getUserId());
+        
+        // --- POPULATE GUEST INFO ---
+        try {
+            User user = (preFetchedUser != null) 
+                ? preFetchedUser 
+                : userService.findUserById(booking.getUserId());
+                
+            if (user != null) {
+                response.setGuestFirstName(user.getFirstName());
+                response.setGuestLastName(user.getLastName());
+                response.setGuestEmail(user.getEmail());
+            }
+        } catch (Exception e) {
+            response.setGuestFirstName("Unknown");
+            response.setGuestLastName("User");
+            response.setGuestEmail("N/A");
+        }
+
         response.setRoomId(booking.getRoomId());
         response.setRoomTypeId(booking.getRoomTypeId());
 
-        // Fetch room type name and image URLs
         try {
             RoomType roomType = roomTypeService.findRoomTypeById(booking.getRoomTypeId());
             response.setRoomTypeName(roomType.getName());
             response.setRoomTypeImageUrls(roomType.getImageUrls());
             response.setRoomTypeMaxOccupancy(roomType.getMaxOccupancy());
         } catch (Exception e) {
-            // Fallback to room type ID if fetch fails
             response.setRoomTypeName(booking.getRoomTypeId());
         }
 
-        // Fetch room number
         try {
             Room room = roomService.findRoomById(booking.getRoomId());
             response.setRoomNumber(room.getRoomNumber());
         } catch (Exception e) {
-            // Fallback to room ID if fetch fails
             response.setRoomNumber(booking.getRoomId());
         }
 

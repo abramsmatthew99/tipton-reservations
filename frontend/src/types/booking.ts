@@ -18,6 +18,9 @@ export type BookingResponse = {
   id: string;
   confirmationNumber: string; // Format: TIP-XXXXXX
   userId: string;
+  guestFirstName?: string;
+  guestLastName?: string;
+  guestEmail?: string;
   roomId: string;
   roomTypeId: string;
   roomTypeName: string; // Human-readable room type name (e.g., "Standard Room", "Deluxe Suite")

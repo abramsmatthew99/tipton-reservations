@@ -1,13 +1,27 @@
-import { Box, Card, Stack, Typography } from "@mui/material";
-import CustomerDateFilter from "./CustomerDateFilter";
+import { 
+  Box, 
+  Button, 
+  Grid, 
+  Paper, 
+  Stack, 
+  TextField, 
+  Typography, 
+  CircularProgress,
+  useTheme,
+  useMediaQuery
+} from "@mui/material";
 import CustomerRoomCard from "./CustomerRoomCard";
+import CustomerFilterComponent from "./CustomerFilterComponent";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { getAmenities } from "../apis/amenities";
 import type { BookingFormState } from "../types/booking";
 import { useEffect, useMemo, useState } from "react";
 import { getRoomTypes, getRoomTypesByDateAndGuests } from "../apis/roomtype";
-import CustomerFilterComponent from "./CustomerFilterComponent";
+import SearchIcon from '@mui/icons-material/Search';
+import HotelIcon from '@mui/icons-material/Hotel';
+import { format, addDays } from "date-fns";
 
+// Types
 type Amenity = {
   id: string | number;
   name?: string;
@@ -28,34 +42,46 @@ type RoomType = {
 
 function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // --- STATE ---
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [amenities, setAmenities] = useState<Amenity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     maxPrice: 0,
     amenityIds: [] as Array<string | number>,
   });
-  const navigate = useNavigate();
 
-  const checkInDate = searchParams.get("checkInDate") || "";
-  const checkOutDate = searchParams.get("checkOutDate") || "";
-  const rawGuests = searchParams.get("guests");
-  const guests = rawGuests ? Number(rawGuests) : 1;
+  // URL Params
+  const urlCheckIn = searchParams.get("checkInDate");
+  const urlCheckOut = searchParams.get("checkOutDate");
+  const urlGuests = searchParams.get("guests");
+  const searchCriteriaValid = urlCheckIn && urlCheckOut && urlGuests;
 
-  const searchCriteria = checkInDate && checkOutDate && guests; //true if all of these are filled
+  // Local Input State
+  const [localCheckIn, setLocalCheckIn] = useState<string>(urlCheckIn || format(new Date(), 'yyyy-MM-dd'));
+  const [localCheckOut, setLocalCheckOut] = useState<string>(urlCheckOut || format(addDays(new Date(), 1), 'yyyy-MM-dd'));
+  const [localGuests, setLocalGuests] = useState<number>(urlGuests ? Number(urlGuests) : 1);
 
-  const handleSearch = (
-    checkIn: string,
-    checkOut: string,
-    guestCount: number
-  ) => {
+  useEffect(() => {
+    if (urlCheckIn) setLocalCheckIn(urlCheckIn);
+    if (urlCheckOut) setLocalCheckOut(urlCheckOut);
+    if (urlGuests) setLocalGuests(Number(urlGuests));
+  }, [urlCheckIn, urlCheckOut, urlGuests]);
+
+  // --- HANDLERS ---
+  const handleSearchClick = () => {
     setSearchParams({
-      checkInDate: checkIn,
-      checkOutDate: checkOut,
-      guests: String(guestCount),
+      checkInDate: localCheckIn,
+      checkOutDate: localCheckOut,
+      guests: String(localGuests),
     });
   };
 
-  // Calculate number of nights between two dates
   const calculateNights = (checkIn: string, checkOut: string): number => {
     const start = new Date(checkIn);
     const end = new Date(checkOut);
@@ -63,12 +89,14 @@ function SearchPage() {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // Handle "Book Now" click - navigate to booking confirmation page
   const handleBookNow = (roomType: RoomType) => {
-    if (!checkInDate || !checkOutDate) return;
+    if (!urlCheckIn || !urlCheckOut) {
+        handleSearchClick(); 
+        return; 
+    }
 
     const basePrice = Number(roomType.basePrice) || 0;
-    const numberOfNights = calculateNights(checkInDate, checkOutDate);
+    const numberOfNights = calculateNights(urlCheckIn, urlCheckOut);
     const totalPrice = basePrice * numberOfNights;
     const imageList = roomType.imageUrls ?? (roomType.imageUrl ? [roomType.imageUrl] : []);
 
@@ -78,9 +106,9 @@ function SearchPage() {
       roomTypeImage: imageList[0],
       roomTypeDescription: roomType.description,
       basePrice: basePrice,
-      checkInDate: checkInDate,
-      checkOutDate: checkOutDate,
-      numberOfGuests: guests,
+      checkInDate: urlCheckIn,
+      checkOutDate: urlCheckOut,
+      numberOfGuests: Number(urlGuests) || 1,
       numberOfNights: numberOfNights,
       totalPrice: totalPrice,
     };
@@ -90,40 +118,50 @@ function SearchPage() {
     });
   };
 
+  // --- DATA FETCHING ---
   useEffect(() => {
     const loadData = async () => {
-      const [amenitiesRes, roomTypesRes] = await Promise.all([
-        getAmenities(),
-        searchCriteria
-          ? await getRoomTypesByDateAndGuests(checkInDate, checkOutDate, guests)
-          : await getRoomTypes(),
-      ]);
-      const amenitiesById = new Map(
-        amenitiesRes.map((amenity: Amenity) => [String(amenity.id), amenity])
-      );
-      const enrichedRoomTypes = roomTypesRes.map((roomType: RoomType) => ({
-        ...roomType,
-        amenities: (roomType.amenityIds ?? [])
-          .map((id) => amenitiesById.get(String(id)))
-          .filter((amenity): amenity is Amenity => amenity !== undefined),
-      }));
-      setAmenities(amenitiesRes);
-      setRoomTypes(enrichedRoomTypes);
+      setLoading(true);
+      try {
+        const [amenitiesRes, roomTypesRes] = await Promise.all([
+          getAmenities(),
+          searchCriteriaValid
+            ? await getRoomTypesByDateAndGuests(urlCheckIn, urlCheckOut, Number(urlGuests))
+            : await getRoomTypes(),
+        ]);
+
+        const amenitiesById = new Map(
+          amenitiesRes.map((amenity: Amenity) => [String(amenity.id), amenity])
+        );
+        
+        const enrichedRoomTypes = (Array.isArray(roomTypesRes) ? roomTypesRes : []).map((roomType: RoomType) => ({
+          ...roomType,
+          amenities: (roomType.amenityIds ?? [])
+            .map((id) => amenitiesById.get(String(id)))
+            .filter((amenity): amenity is Amenity => amenity !== undefined),
+        }));
+
+        setAmenities(amenitiesRes);
+        setRoomTypes(enrichedRoomTypes);
+      } catch (err) {
+        console.error("Failed to load search data", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();
-  }, [checkInDate, checkOutDate, guests, searchCriteria]);
+  }, [urlCheckIn, urlCheckOut, urlGuests, searchCriteriaValid]);
+
+  // --- FILTERING ---
   const maxBasePrice = useMemo(() => {
     if (roomTypes.length === 0) return 0;
     return roomTypes.reduce((maxValue, roomType) => {
-      const numericPrice =
-        roomType.basePrice === null || roomType.basePrice === undefined
-          ? 0
-          : Number(roomType.basePrice);
-      if (Number.isNaN(numericPrice)) return maxValue;
+      const numericPrice = Number(roomType.basePrice) || 0;
       return Math.max(maxValue, numericPrice);
     }, 0);
   }, [roomTypes]);
+
   useEffect(() => {
     if (maxBasePrice === 0) return;
     setFilters((prev) => {
@@ -133,65 +171,124 @@ function SearchPage() {
       return prev;
     });
   }, [maxBasePrice]);
+
   const filteredRoomTypes = useMemo(() => {
     const hasPriceFilter = filters.maxPrice > 0;
     const selectedAmenityIds = filters.amenityIds.map(String);
+    
     return roomTypes.filter((roomType) => {
-      const numericPrice =
-        roomType.basePrice === null || roomType.basePrice === undefined
-          ? 0
-          : Number(roomType.basePrice);
-      if (
-        hasPriceFilter &&
-        !Number.isNaN(numericPrice) &&
-        numericPrice > filters.maxPrice
-      ) {
-        return false;
+      const numericPrice = Number(roomType.basePrice) || 0;
+      if (hasPriceFilter && numericPrice > filters.maxPrice) return false;
+      if (selectedAmenityIds.length > 0) {
+        const roomAmenityIds = (roomType.amenityIds ?? []).map(String);
+        const hasAll = selectedAmenityIds.every((id) => roomAmenityIds.includes(id));
+        if (!hasAll) return false;
       }
-      if (selectedAmenityIds.length === 0) {
-        return true;
-      }
-      const roomAmenityIds = (roomType.amenityIds ?? []).map(String);
-      return selectedAmenityIds.every((id) => roomAmenityIds.includes(id));
+      return true;
     });
   }, [roomTypes, filters]);
-  return (
-    <>
-      <CustomerDateFilter
-        onSearch={handleSearch}
-        checkInDate={checkInDate}
-        checkOutDate={checkOutDate} //@ts-ignore
-        guests={guests}
-      ></CustomerDateFilter>
-      <Box display="flex" gap={3} alignItems="flex-start" flexWrap="wrap">
-        <Box
-          component={Card}
-          flex={{ xs: "1 1 100%", md: "0 0 320px" }}
-          sx={{ p: 2 }}
-        >
-          <CustomerFilterComponent
-            amenities={amenities}
-            maxPrice={maxBasePrice}
-            onChange={setFilters}
-          />
-        </Box>
-        <Box flex="1 1 0%">
-          <Stack spacing={2}>
-            {filteredRoomTypes.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">
-                {roomTypes.length === 0
-                  ? "No room types available."
-                  : "No room types match the current filters."}
-              </Typography>
-            ) : (
-              filteredRoomTypes.map((roomType, index) => {
-                const imageList =
-                  roomType.imageUrls ??
-                  (roomType.imageUrl ? [roomType.imageUrl] : []);
 
-                return (
+  // --- RENDER ---
+  return (
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        flexDirection: { xs: 'column', md: 'row' }, 
+        gap: 3, 
+        alignItems: 'flex-start', 
+        p:3
+      }}
+    >
+      
+      {/* LEFT COLUMN (SIDEBAR) */}
+      <Box 
+        sx={{ 
+          width: { xs: '100%', md: 320 }, 
+          flexShrink: 0 
+        }}
+      >
+        <Stack spacing={3}>
+          {/* 1. SEARCH INPUTS */}
+          <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="h6" fontWeight={700} gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <SearchIcon fontSize="small" color="primary" /> Search
+            </Typography>
+            <Stack spacing={2} mt={2}>
+              <TextField
+                label="Check-in"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={localCheckIn}
+                onChange={(e) => setLocalCheckIn(e.target.value)}
+              />
+              <TextField
+                label="Check-out"
+                type="date"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={localCheckOut}
+                onChange={(e) => setLocalCheckOut(e.target.value)}
+              />
+              <TextField
+                label="Guests"
+                type="number"
+                fullWidth
+                InputProps={{ inputProps: { min: 1, max: 10 } }}
+                value={localGuests}
+                onChange={(e) => setLocalGuests(Number(e.target.value))}
+              />
+              <Button variant="contained" size="large" onClick={handleSearchClick}>
+                Check Availability
+              </Button>
+            </Stack>
+          </Paper>
+
+          {/* 2. FILTERS */}
+          <Paper elevation={0} sx={{ p: 2, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+             <CustomerFilterComponent
+                amenities={amenities}
+                maxPrice={maxBasePrice}
+                onChange={setFilters}
+              />
+          </Paper>
+        </Stack>
+      </Box>
+
+      {/* RIGHT COLUMN (RESULTS) */}
+      <Box sx={{ flexGrow: 1, minWidth: 0, width: '100%' }}>
+        {loading ? (
+           <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
+              <CircularProgress />
+           </Box>
+        ) : filteredRoomTypes.length === 0 ? (
+           <Box 
+             display="flex" 
+             flexDirection="column" 
+             alignItems="center" 
+             justifyContent="center" 
+             py={10} 
+             bgcolor="grey.50" 
+             borderRadius={2}
+             border="1px dashed"
+             borderColor="divider"
+           >
+              <HotelIcon sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary">
+                No rooms found.
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                 Try adjusting your dates or filters.
+              </Typography>
+           </Box>
+        ) : (
+          <Grid container spacing={3}>
+            {filteredRoomTypes.map((roomType, index) => {
+              const imageList = roomType.imageUrls ?? (roomType.imageUrl ? [roomType.imageUrl] : []);
+              
+              return (
+                <Grid item xs={12} sm={6} lg={4} key={roomType.id ?? index}>
                   <CustomerRoomCard
-                    key={roomType.id ?? index}
                     roomTypeId={String(roomType.id ?? index)}
                     name={roomType.name}
                     basePrice={roomType.basePrice ?? "0"}
@@ -199,17 +296,15 @@ function SearchPage() {
                     imageUrls={imageList[0] ?? undefined}
                     description={roomType.description ?? ""}
                     amenities={roomType?.amenities ?? []}
-                    onBookNow={
-                      searchCriteria ? () => handleBookNow(roomType) : undefined
-                    }
+                    onBookNow={searchCriteriaValid ? () => handleBookNow(roomType) : undefined}
                   />
-                );
-              })
-            )}
-          </Stack>
-        </Box>
+                </Grid>
+              );
+            })}
+          </Grid>
+        )}
       </Box>
-    </>
+    </Box>
   );
 }
 
