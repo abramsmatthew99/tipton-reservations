@@ -51,6 +51,8 @@ function StripePaymentForm({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [cardComplete, setCardComplete] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
   const [createBooking] = useCreateBookingMutation();
   const [createPaymentIntent] = useCreatePaymentIntentMutation();
   const [voidBooking] = useVoidBookingMutation();
@@ -58,6 +60,12 @@ function StripePaymentForm({
   // Handle terms checkbox
   const handleTermsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setTermsAccepted(event.target.checked);
+  };
+
+  // Handle CardElement change events to track when card info is complete
+  const handleCardChange = (event: any) => {
+    setCardComplete(event.complete);
+    setCardError(event.error ? event.error.message : null);
   };
 
   /**
@@ -181,10 +189,18 @@ function StripePaymentForm({
             },
             hidePostalCode: false,
           }}
+          onChange={handleCardChange}
         />
       </Box>
 
-      {/* Error Alert */}
+      {/* Card Validation Error */}
+      {cardError && (
+        <Alert severity='error' sx={{ mb: 2 }}>
+          {cardError}
+        </Alert>
+      )}
+
+      {/* Payment Error Alert */}
       {error && (
         <Alert severity='error' sx={{ mb: 2 }}>
           {error}
@@ -219,7 +235,7 @@ function StripePaymentForm({
         variant='contained'
         size='large'
         fullWidth
-        disabled={!stripe || processing || !termsAccepted || disabled}
+        disabled={!stripe || processing || !termsAccepted || !cardComplete || disabled}
         onClick={handlePayment}
       >
         {processing ? "Processing..." : "Pay Now to Confirm Booking"}

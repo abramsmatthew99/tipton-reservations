@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Container,
@@ -18,6 +18,10 @@ import GuestInfoCard from "../../components/Booking/GuestInfoCard";
 import StripePaymentForm from "../../components/Payment/StripePaymentForm";
 import { stripePromise } from "../../config/stripe";
 import { useConfirmBookingMutation } from "../../store/api/bookingApi";
+import { sendBookingConfirmationEmail } from "../../services/emailService";
+import { formatDate } from "../../util/helper";
+import { useAuth } from "../../context/AuthContext";
+import axios from "axios";
 
 /**
  * Booking Confirmation Page
@@ -41,6 +45,66 @@ function BookingConfirmPage() {
   // RTK Query mutations
   const [confirmBooking] = useConfirmBookingMutation();
 
+  // Get authenticated user
+  const { user } = useAuth();
+
+  // Fetch user profile data on page load
+  const [profileData, setProfileData] = useState<{
+    id?: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+  } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [isProfileIncomplete, setIsProfileIncomplete] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.sub) {
+        setProfileLoading(false);
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+        const response = await axios.get(`${baseURL}/users/email/${user.sub}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const profile = {
+          id: response.data.id,
+          firstName: response.data.firstName || "",
+          lastName: response.data.lastName || "",
+          email: response.data.email,
+          phoneNumber: response.data.phoneNumber || "",
+        };
+
+        setProfileData(profile);
+
+        // Check if profile is incomplete (firstName and lastName are required)
+        setIsProfileIncomplete(!profile.firstName || !profile.lastName);
+      } catch (err) {
+        console.error("Failed to load user profile:", err);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user?.sub]);
+
+  // Handle profile updates from GuestInfoCard
+  const handleProfileUpdate = (updatedProfile: typeof profileData) => {
+    setProfileData(updatedProfile);
+    // Update incomplete status
+    if (updatedProfile) {
+      setIsProfileIncomplete(!updatedProfile.firstName || !updatedProfile.lastName);
+    }
+  };
+
   // Handle successful payment: confirm the pending booking
   const handlePaymentSuccess = async (
     paymentIntentId: string,
@@ -59,6 +123,39 @@ function BookingConfirmPage() {
         id: bookingId,
         paymentIntentId,
       }).unwrap();
+
+      // Send confirmation email (async, won't block navigation)
+      console.log('DEBUG - profileData at payment success:', profileData);
+      console.log('DEBUG - profileLoading:', profileLoading);
+
+      if (profileData?.email) {
+        const guestName = profileData.firstName && profileData.lastName
+          ? `${profileData.firstName} ${profileData.lastName}`
+          : 'Guest';
+
+        console.log('DEBUG - Sending email to:', profileData.email);
+        console.log('DEBUG - Guest name:', guestName);
+
+        sendBookingConfirmationEmail({
+          guestEmail: profileData.email,
+          guestName,
+          confirmationNumber: confirmedBooking.confirmationNumber,
+          checkInDate: formatDate(confirmedBooking.checkInDate),
+          checkOutDate: formatDate(confirmedBooking.checkOutDate),
+          roomType: confirmedBooking.roomTypeName,
+          roomNumber: confirmedBooking.roomNumber,
+          numGuests: confirmedBooking.numberOfGuests,
+          totalPrice: parseFloat(confirmedBooking.totalPrice).toFixed(2),
+        }).catch(err => {
+          // Email failure is logged but doesn't affect booking
+          console.error('Email sending failed:', err);
+        });
+      } else {
+        console.warn('Booking confirmed but email not sent: user profile not loaded', {
+          profileData,
+          profileLoading
+        });
+      }
 
       // Navigate to confirmation page with booking details
       navigate(`/booking/confirmation/${confirmedBooking.confirmationNumber}`, {
@@ -124,7 +221,12 @@ function BookingConfirmPage() {
         {/* Right Column: Guest Info & Payment */}
         <Grid size={{ xs: 12, md: 5 }}>
           {/* Guest Information */}
-          <GuestInfoCard />
+          <GuestInfoCard
+            profileData={profileData}
+            loading={profileLoading}
+            onProfileUpdate={handleProfileUpdate}
+            onEditingChange={setIsEditingProfile}
+          />
 
           {/* Payment */}
           <Card sx={{ mb: 3 }}>
@@ -136,6 +238,15 @@ function BookingConfirmPage() {
                 ${bookingData.totalPrice.toFixed(2)}
               </Typography>
 
+              {/* Warning if profile is incomplete or being edited */}
+              {(isProfileIncomplete || isEditingProfile) && (
+                <Alert severity='warning' sx={{ mb: 2 }}>
+                  {isEditingProfile
+                    ? "Please save your guest information before proceeding with payment."
+                    : "Please complete your guest information above before proceeding with payment."}
+                </Alert>
+              )}
+
               {/* Stripe Payment Form */}
               <Elements stripe={stripePromise}>
                 <StripePaymentForm
@@ -143,7 +254,7 @@ function BookingConfirmPage() {
                   bookingData={bookingData}
                   onSuccess={handlePaymentSuccess}
                   onError={handlePaymentError}
-                  disabled={isProcessing}
+                  disabled={isProcessing || isProfileIncomplete || isEditingProfile}
                 />
               </Elements>
 

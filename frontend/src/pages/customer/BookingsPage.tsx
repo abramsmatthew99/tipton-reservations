@@ -14,7 +14,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import BookingCard from "../../components/Booking/BookingCard";
 import { useGetUserBookingsQuery } from "../../store/api/bookingApi";
-import { isBefore, parseISO } from "date-fns";
+import { isBefore, parseISO, isAfter } from "date-fns";
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import HistoryIcon from '@mui/icons-material/History';
 import CancelScheduleSendIcon from '@mui/icons-material/CancelScheduleSend';
@@ -38,14 +38,19 @@ function BookingsPage() {
     const ca: BookingResponse[] = [];
 
     bookings.forEach((b) => {
-      if (b.status === "CANCELLED" || b.status === "VOIDED") {
+      // Hide VOIDED bookings (failed/abandoned payment attempts)
+      if (b.status === "VOIDED") {
+        return;
+      }
+
+      if (b.status === "CANCELLED") {
         ca.push(b);
         return;
       }
 
       const checkOut = parseISO(b.checkOutDate);
-      
-      if (b.status === "COMPLETED" || isBefore(checkOut, today)) {
+
+      if (b.status === "COMPLETED" || !isAfter(checkOut, today)) {
         pa.push(b);
       } else {
         up.push(b);
