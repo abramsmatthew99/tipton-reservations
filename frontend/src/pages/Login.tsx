@@ -114,6 +114,14 @@ export default function Login() {
                             >
                                 Sign In
                             </Button>
+                            <Button 
+                                fullWidth 
+                                variant="text" 
+                                onClick={() => navigate('/register')}
+                                sx={{ textTransform: 'none' }}
+                            >
+                                Don't have an account? Sign Up
+                            </Button>
                             <Divider sx={{ my: 2 }}>OR</Divider>
                             <Button
                                 fullWidth

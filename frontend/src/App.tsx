@@ -4,8 +4,6 @@ import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
 import BookingConfirmPage from "./pages/booking/BookingConfirmPage";
 import BookingConfirmationPage from "./pages/booking/BookingConfirmationPage";
-import AdminPortal from "./layouts/AdminPortal";
-import CustomerPortal from "./layouts/CustomerPortal";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminRooms from "./pages/admin/AdminRooms";
 import AdminBookings from "./pages/admin/AdminBookings";
@@ -20,6 +18,7 @@ import LandingPage from "./pages/Landing";
 import Footer from "./components/Footer";
 import { Box } from '@mui/material';
 import NavBar  from './components/NavBar';
+import Register from "./pages/Register";
 
 function App() {
   return (
@@ -33,15 +32,14 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/auth-success" element={<AuthSuccess />} />
             <Route path="/" element={<LandingPage />} />
+            <Route path="/register" element={<Register />} />
 
             {/* Admin route for existing room management forms */}
             <Route element={<PrivateRoute allowedRoles={['ROLE_ADMIN']} />}>
-              <Route path="/admin" element={<AdminPortal />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path='rooms' element={<AdminRooms />} />
-                <Route path='room-types' element={<AdminRoomTypes />} />
-                <Route path='bookings' element={<AdminBookings />} />
-              </Route>
+                <Route path='/admin' element={<AdminDashboard />} />
+                <Route path='admin/rooms' element={<AdminRooms />} />
+                <Route path='admin/room-types' element={<AdminRoomTypes />} />
+                <Route path='admin/bookings' element={<AdminBookings />} />
             </Route>
 
             {/* Booking Confirmation Page (Payment) */}
@@ -54,12 +52,10 @@ function App() {
             />
             {/* Customer Portal */}
             <Route element={<PrivateRoute allowedRoles={['ROLE_ADMIN', 'ROLE_CUSTOMER']}/>}>
-              <Route path="/customer" element={<CustomerPortal />}>
-                <Route index element={<BrowseRooms />} />
-                <Route path='bookings' element={<BookingsPage />} />
-                <Route path='bookings/:id' element={<BookingDetailsPage />} />
-                <Route path='profile' element={<Profile />} />
-              </Route>
+=               <Route path='/customer' element={<BrowseRooms />} />
+                <Route path='/customer/bookings' element={<BookingsPage />} />
+                <Route path='/customer/bookings/:id' element={<BookingDetailsPage />} />
+                <Route path='/customer/profile' element={<Profile />} />
             </Route>
 
           </Routes>

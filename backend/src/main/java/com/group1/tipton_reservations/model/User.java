@@ -1,11 +1,13 @@
 package com.group1.tipton_reservations.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import jakarta.annotation.Generated;
 import jakarta.validation.constraints.Email;
 
 import java.time.LocalDateTime;
@@ -16,6 +18,8 @@ import java.util.Set;
 
 @Data
 @Document(collection = "users")
+@NoArgsConstructor
+@AllArgsConstructor
 public class User {
 
     public User(String email, String password) {
