@@ -1,37 +1,43 @@
-import { Box, Paper, Tab, Tabs, Typography } from "@mui/material";
+import { Box, Container, Tab, Tabs, Typography, Paper, useTheme } from "@mui/material";
 import { NavLink, useLocation } from "react-router-dom";
 import AdminRooms from "./AdminRooms";
 import AdminRoomTypes from "./AdminRoomTypes";
+import BedroomParentIcon from '@mui/icons-material/BedroomParent';
+import CategoryIcon from '@mui/icons-material/Category';
 
 const AdminRoomManagement = () => {
   const location = useLocation();
+  const theme = useTheme();
+  
   const tabs = [
-    { label: "Rooms", value: "/admin/rooms" },
-    { label: "Room Types", value: "/admin/room-types" },
+    { label: "Room Inventory", value: "/admin/rooms", icon: <BedroomParentIcon fontSize="small"/> },
+    { label: "Room Types", value: "/admin/room-types", icon: <CategoryIcon fontSize="small"/> },
   ];
+  
   const activeTab =
     tabs.find((tab) => location.pathname.startsWith(tab.value))?.value ??
     "/admin/rooms";
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-      <Paper elevation={1} sx={{ p: { xs: 2, md: 3 } }}>
-        <Box display="flex" flexDirection="column" gap={1.5}>
-          <Typography variant="h5" fontWeight={700}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* 1. PAGE HEADER */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight={800} gutterBottom color="text.primary">
             Room Management
-          </Typography>
-          <Tabs
-            value={activeTab}
-            aria-label="Room management sections"
-            sx={{
-              minHeight: 48,
-              "& .MuiTabs-flexContainer": { gap: 1 },
-              "& .MuiTabs-indicator": {
-                height: 3,
-                borderRadius: 2,
-              },
-            }}
-          >
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+            Manage hotel inventory, room definitions, and assignments.
+        </Typography>
+      </Box>
+
+      {/* 2. TABS */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs 
+            value={activeTab} 
+            textColor="primary"
+            indicatorColor="primary"
+            aria-label="Room management tabs"
+        >
             {tabs.map((tab) => (
               <Tab
                 key={tab.value}
@@ -39,24 +45,28 @@ const AdminRoomManagement = () => {
                 value={tab.value}
                 component={NavLink}
                 to={tab.value}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  px: 2,
-                  minHeight: 48,
+                icon={tab.icon}
+                iconPosition="start"
+                sx={{ 
+                    fontWeight: 600, 
+                    textTransform: 'none', 
+                    minHeight: 48,
+                    mr: 2
                 }}
               />
             ))}
-          </Tabs>
-        </Box>
-      </Paper>
+        </Tabs>
+      </Box>
 
-      {activeTab === "/admin/room-types" ? (
-        <AdminRoomTypes />
-      ) : (
-        <AdminRooms />
-      )}
-    </Box>
+      {/* 3. CONTENT AREA */}
+      <Box sx={{ minHeight: '60vh' }}>
+        {activeTab === "/admin/room-types" ? (
+            <AdminRoomTypes />
+        ) : (
+            <AdminRooms />
+        )}
+      </Box>
+    </Container>
   );
 };
 

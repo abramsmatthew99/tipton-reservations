@@ -2,7 +2,7 @@ import { Box, Container, Grid, Typography, Stack} from '@mui/material';
 
 export default function Footer() {
     return (
-        <Box component="footer" sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', py: 6, mt: 'auto' }}>
+        <Box component="footer" sx={{ bgcolor: 'primary.main', color: 'primary.contrastText', py: 3, mt: 5 }}>
             <Container maxWidth="lg">
                 <Grid container spacing={4}>
                     <Grid size={{xs:12, md:4}}>
