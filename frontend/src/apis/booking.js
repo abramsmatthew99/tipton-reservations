@@ -5,3 +5,9 @@ export const getBookings = async () => {
 
   return data;
 };
+
+export const cancelBooking = async (id) => {
+  const { data } = await client.delete(`/bookings/${id}`);
+
+  return data;
+};

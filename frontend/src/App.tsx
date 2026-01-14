@@ -7,9 +7,8 @@ import BookingConfirmationPage from "./pages/booking/BookingConfirmationPage";
 import AdminPortal from "./layouts/AdminPortal";
 import CustomerPortal from "./layouts/CustomerPortal";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminRooms from "./pages/admin/AdminRooms";
 import AdminBookings from "./pages/admin/AdminBookings";
-import AdminRoomTypes from "./pages/admin/AdminRoomTypes";
+import AdminRoomManagement from "./pages/admin/AdminRoomManagement";
 import BrowseRooms from "./pages/customer/BrowseRooms";
 import Profile from "./pages/customer/Profile";
 import BookingsPage from "./pages/customer/BookingsPage";
@@ -38,8 +37,8 @@ function App() {
             <Route element={<PrivateRoute allowedRoles={['ROLE_ADMIN']} />}>
               <Route path="/admin" element={<AdminPortal />}>
                 <Route index element={<AdminDashboard />} />
-                <Route path='rooms' element={<AdminRooms />} />
-                <Route path='room-types' element={<AdminRoomTypes />} />
+                <Route path='rooms' element={<AdminRoomManagement />} />
+                <Route path='room-types' element={<AdminRoomManagement />} />
                 <Route path='bookings' element={<AdminBookings />} />
               </Route>
             </Route>

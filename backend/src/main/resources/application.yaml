@@ -3,7 +3,7 @@ spring:
     name: tipton-reservations
   data:
     mongodb:
-      uri: mongodb+srv://administrator:YbHidL31.5.1@tiptonreservations.hqk4yh5.mongodb.net/tipton?appName=TiptonReservations
+      uri: ${SPRING_DATA_MONGODB_URI}
   output:
     ansi:
       enabled: always
@@ -33,4 +33,3 @@ stripe:
 
 server:
   port: 8080
-

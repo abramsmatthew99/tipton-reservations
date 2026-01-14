@@ -62,10 +62,10 @@ public class SecurityConfig {
             .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler)) 
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) 
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/").permitAll()
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/room-types/**").permitAll()
                 .requestMatchers("/rooms/**").permitAll()
-
                 .requestMatchers("/amenities/**").permitAll()
                 .requestMatchers("/payments/**").authenticated() // Requires auth for payment processing
                 .requestMatchers("/bookings/**").authenticated() // Requires auth for booking operations
@@ -122,4 +122,3 @@ public class SecurityConfig {
         return expressionHandler;
     }
 }
-

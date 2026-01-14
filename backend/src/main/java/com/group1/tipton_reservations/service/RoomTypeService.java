@@ -77,7 +77,7 @@ public class RoomTypeService {
 
     /**
      * Find all room types that have at least one room available for the specified date range.
-     *
+     *      
      * @param checkInDate the check-in date
      * @param checkOutDate the check-out date
      * @return list of available room types with availability count
