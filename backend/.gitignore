@@ -34,3 +34,5 @@ build/
 
 ### env ###
 .env
+
+JAVA_OPTS=-Dcom.mongodb.disableSslHostnameVerification=true

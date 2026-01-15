@@ -17,6 +17,7 @@ spring:
             scope:
               - email
               - profile
+            redirect-uri: https://dsl77ny0dhn06.cloudfront.net/api/login/oauth2/code/google
 
 logging:
   level:
@@ -24,7 +25,7 @@ logging:
 
 tipton:
   app:
-    jwtSecret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    jwtSecret: ${JWT_SECRET}
     jwtExpirationMs: 86400000 # 24 hours in milliseconds
 
 stripe:
@@ -32,4 +33,6 @@ stripe:
     key: ${STRIPE_SECRET_KEY:default_key}
 
 server:
-  port: 8080
+  port: 5000
+  servlet:
+    context-path: /api

@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .requestMatchers("/amenities/**").permitAll()
                 .requestMatchers("/payments/**").authenticated() // Requires auth for payment processing
                 .requestMatchers("/bookings/**").authenticated() // Requires auth for booking operations
+                .requestMatchers("/oauth2/", "/login/").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2
@@ -84,7 +85,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // TODO: Update for s3 bucket
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://tipton-frontend-app.s3-website-us-east-1.amazonaws.com")); 
+        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://tipton-frontend-app.s3-website-us-east-1.amazonaws.com", "http://group3-frontend-hosting.s3-website-us-east-1.amazonaws.com", "https://dsl77ny0dhn06.cloudfront.net")); 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
