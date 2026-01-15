@@ -6,7 +6,6 @@ import BookingConfirmPage from "./pages/booking/BookingConfirmPage";
 import BookingConfirmationPage from "./pages/booking/BookingConfirmationPage";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBookings from "./pages/admin/AdminBookings";
-import AdminRoomManagement from "./pages/admin/AdminRoomManagement";
 import BrowseRooms from "./pages/customer/BrowseRooms";
 import Profile from "./pages/customer/Profile";
 import BookingsPage from "./pages/customer/BookingsPage";

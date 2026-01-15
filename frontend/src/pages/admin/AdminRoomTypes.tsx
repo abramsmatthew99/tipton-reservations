@@ -11,7 +11,6 @@ import {
   Collapse,
   Divider,
   Grid,
-  IconButton,
   MenuItem,
   Stack,
   Table,
@@ -221,7 +220,7 @@ const AdminRoomTypes = () => {
                               <Box sx={{ p: 3, bgcolor: 'background.default', borderBottom: 1, borderColor: 'divider' }}>
                                 <Grid container spacing={4}>
                                     {/* COL 1: INFO & IMAGES */}
-                                    <Grid item xs={12} md={5}>
+                                    <Grid size={{ xs: 12, md: 5 }}>
                                         <Typography variant="overline" color="text.secondary" fontWeight={700}>Description</Typography>
                                         <Typography variant="body2" paragraph>{roomType.description || "No description provided."}</Typography>
                                         
@@ -240,7 +239,7 @@ const AdminRoomTypes = () => {
                                     </Grid>
 
                                     {/* COL 2: AMENITIES */}
-                                    <Grid item xs={12} md={7}>
+                                    <Grid size={{ xs: 12, md: 7 }}>
                                         <Typography variant="overline" color="text.secondary" fontWeight={700}>Amenities</Typography>
                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
                                             {selectedAmenityIds.map(id => {

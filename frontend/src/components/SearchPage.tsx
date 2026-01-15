@@ -1,14 +1,12 @@
-import { 
-  Box, 
-  Button, 
-  Grid, 
-  Paper, 
-  Stack, 
-  TextField, 
-  Typography, 
-  CircularProgress,
-  useTheme,
-  useMediaQuery
+import {
+  Box,
+  Button,
+  Grid,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+  CircularProgress
 } from "@mui/material";
 import CustomerRoomCard from "./CustomerRoomCard";
 import CustomerFilterComponent from "./CustomerFilterComponent";
@@ -43,9 +41,6 @@ type RoomType = {
 function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const theme = useTheme();
-  
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // --- STATE ---
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -285,9 +280,9 @@ function SearchPage() {
           <Grid container spacing={3}>
             {filteredRoomTypes.map((roomType, index) => {
               const imageList = roomType.imageUrls ?? (roomType.imageUrl ? [roomType.imageUrl] : []);
-              
+
               return (
-                <Grid item xs={12} sm={6} lg={4} key={roomType.id ?? index}>
+                <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={roomType.id ?? index}>
                   <CustomerRoomCard
                     roomTypeId={String(roomType.id ?? index)}
                     name={roomType.name}

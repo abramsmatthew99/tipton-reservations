@@ -39,9 +39,9 @@ const AdminBookings = () => {
         if (!mounted) {
           return;
         }
-        setBookings(Array.isArray(bks) ? bks : bks?.content ?? []);
-        setUsers(Array.isArray(usrs) ? usrs : usrs?.content ?? []);
-        setRoomTypes(Array.isArray(rts) ? rts : rts?.content ?? []);
+        setBookings(Array.isArray(bks) ? bks : []);
+        setUsers(Array.isArray(usrs) ? usrs : []);
+        setRoomTypes(Array.isArray(rts) ? rts : []);
         setIsLoading(false);
       } catch (error) {
         if (mounted) {

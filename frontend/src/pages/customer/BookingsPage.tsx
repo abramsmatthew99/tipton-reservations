@@ -9,12 +9,11 @@ import {
   Tab,
   Box,
   Button,
-  Divider,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import BookingCard from "../../components/Booking/BookingCard";
 import { useGetUserBookingsQuery } from "../../store/api/bookingApi";
-import { isBefore, parseISO, isAfter } from "date-fns";
+import { parseISO, isAfter } from "date-fns";
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import HistoryIcon from '@mui/icons-material/History';
 import CancelScheduleSendIcon from '@mui/icons-material/CancelScheduleSend';
@@ -25,7 +24,7 @@ import type { BookingResponse } from "../../types/booking";
 
 function BookingsPage() {
   const navigate = useNavigate();
-  const { data, isLoading, isError, error } = useGetUserBookingsQuery({});
+  const { data, isLoading, isError } = useGetUserBookingsQuery({});
   const [tabIndex, setTabIndex] = useState(0);
 
   const bookings = (data?.content || []) as BookingResponse[];
