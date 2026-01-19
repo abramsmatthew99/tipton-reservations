@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export default function Profile() {
-    const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+    const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
