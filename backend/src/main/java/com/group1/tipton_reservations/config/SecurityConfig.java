@@ -70,6 +70,7 @@ public class SecurityConfig {
                 .requestMatchers("/payments/**").authenticated() // Requires auth for payment processing
                 .requestMatchers("/bookings/**").authenticated() // Requires auth for booking operations
                 .requestMatchers("/oauth2/", "/login/").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 .anyRequest().authenticated()
             )
             .oauth2Login(oauth2 -> oauth2

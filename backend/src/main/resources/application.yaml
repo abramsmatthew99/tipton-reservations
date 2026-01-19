@@ -27,6 +27,8 @@ tipton:
   app:
     jwtSecret: ${JWT_SECRET}
     jwtExpirationMs: 86400000 # 24 hours in milliseconds
+    frontend:
+      url: https://dsl77ny0dhn06.cloudfront.net
 
 stripe:
   api:

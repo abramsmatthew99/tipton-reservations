@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from "react";
 import RoomTypeForm from "../../components/RoomTypeForm";
 import { createRoomType, deleteRoomType, editRoomType, getRoomTypes } from "../../apis/roomtype";
 import { getAmenities } from "../../apis/amenities";
+import { createUploadPresign, uploadImageToPresignedUrl } from "../../apis/uploads";
 import {
   Box,
   Button,
@@ -33,20 +34,14 @@ type AmenityOption = { id: string | number; name?: string; iconCode?: string; };
 type RoomType = { id?: string | number; name: string; description?: string; basePrice?: string | number; maxOccupancy?: string | number; imageUrl?: string; imageUrls?: string[]; amenityIds?: Array<string | number>; };
 
 const AdminRoomTypes = () => {
-  const dropdownData = {
-    imageOptions: [
-      { id: "img-1", url: "https://example.com/rooms/standard-1.jpg" },
-      { id: "img-2", url: "https://example.com/rooms/deluxe-1.jpg" },
-      { id: "img-3", url: "https://example.com/rooms/suite-1.jpg" },
-    ],
-  };
-
-  const [createForm, setCreateForm] = useState<{ name: string; description: string; basePrice: string; maxOccupancy: string; imageUrl: string; amenityIds?: string[]; }>({
-    name: "", description: "", basePrice: "", maxOccupancy: "", imageUrl: dropdownData.imageOptions[0].url, amenityIds: [],
+  const [createForm, setCreateForm] = useState<{ name: string; description: string; basePrice: string; maxOccupancy: string; imageUrls: string[]; amenityIds?: string[]; }>({
+    name: "", description: "", basePrice: "", maxOccupancy: "", imageUrls: [], amenityIds: [],
   });
+  const [createImageFiles, setCreateImageFiles] = useState<File[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editRoomTypeId, setEditRoomTypeId] = useState<string | number | null>(null);
   const [editForm, setEditForm] = useState(createForm); // Simplified Init
+  const [editImageFiles, setEditImageFiles] = useState<File[]>([]);
 
   const [amenities, setAmenities] = useState<AmenityOption[]>([]);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -68,10 +63,40 @@ const AdminRoomTypes = () => {
   const hasRoomTypeFilters = roomTypeFilterId !== "all" || occupancyFilter !== "all";
 
   // Handlers (Keep logic same)
+  const resolveUploadTargets = (presignResponse: any) => {
+    const uploadUrl = presignResponse?.uploadUrl ?? presignResponse?.presignedUrl ?? presignResponse?.url ?? "";
+    const fileUrl = presignResponse?.fileUrl ?? presignResponse?.publicUrl ?? "";
+    const fallbackFileUrl = uploadUrl ? uploadUrl.split("?")[0] : "";
+    return {
+      uploadUrl,
+      fileUrl: fileUrl || fallbackFileUrl,
+    };
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    const uploadedUrls: string[] = [];
+    for (const file of files) {
+      const presign = await createUploadPresign({
+        filename: file.name,
+        contentType: file.type || "application/octet-stream",
+      });
+      const { uploadUrl, fileUrl } = resolveUploadTargets(presign);
+      if (!uploadUrl || !fileUrl) throw new Error("Missing upload URL from presign response.");
+      await uploadImageToPresignedUrl(uploadUrl, file);
+      uploadedUrls.push(fileUrl);
+    }
+    return uploadedUrls;
+  };
+
   const handleSubmit = async () => {
-    const res = await createRoomType(createForm);
+    const uploadedUrls = createImageFiles.length > 0
+      ? await uploadFiles(createImageFiles)
+      : [];
+    const imageUrls = [...(createForm.imageUrls ?? []), ...uploadedUrls];
+    const res = await createRoomType({ ...createForm, imageUrls });
     setRoomTypes((prev) => (Array.isArray(res) ? res : [...prev, res]));
     setIsCreateOpen(false);
+    setCreateImageFiles([]);
   };
   const handleDelete = async (id: string | number) => {
     await deleteRoomType(id);
@@ -81,18 +106,23 @@ const AdminRoomTypes = () => {
   const handleEditToggle = (roomType: RoomType, rowId: string | number) => {
     if (editRoomTypeId === rowId) { setEditRoomTypeId(null); return; }
     setEditRoomTypeId(rowId);
+    setEditImageFiles([]);
     setEditForm({
       name: roomType.name ?? "",
       description: roomType.description ?? "",
       basePrice: roomType.basePrice === undefined || roomType.basePrice === null ? "" : String(roomType.basePrice),
       maxOccupancy: roomType.maxOccupancy === undefined || roomType.maxOccupancy === null ? "" : String(roomType.maxOccupancy),
-      imageUrl: roomType.imageUrl || roomType.imageUrls?.[0] || dropdownData.imageOptions[0].url,
+      imageUrls: roomType.imageUrls ?? (roomType.imageUrl ? [roomType.imageUrl] : []),
       amenityIds: (roomType.amenityIds ?? []).map((id) => String(id)),
     });
   };
   const handleEditSubmit = async (roomTypeId: string | number) => {
     const normalizeNumber = (value: string) => value.trim() === "" ? null : Number(value);
-    const payload = { roomId: roomTypeId, ...editForm, basePrice: normalizeNumber(editForm.basePrice), maxOccupancy: normalizeNumber(editForm.maxOccupancy) };
+    const uploadedUrls = editImageFiles.length > 0
+      ? await uploadFiles(editImageFiles)
+      : [];
+    const imageUrls = [...(editForm.imageUrls ?? []), ...uploadedUrls];
+    const payload = { roomId: roomTypeId, ...editForm, imageUrls, basePrice: normalizeNumber(editForm.basePrice), maxOccupancy: normalizeNumber(editForm.maxOccupancy) };
     const res = await editRoomType(payload);
     setRoomTypes((prev) => {
       if (Array.isArray(res)) return res;
@@ -100,6 +130,7 @@ const AdminRoomTypes = () => {
       return prev.map((roomType) => String(roomType.id) === String(roomTypeId) ? { ...roomType, ...res } : roomType);
     });
     setEditRoomTypeId(null);
+    setEditImageFiles([]);
   };
 
   useEffect(() => {
@@ -138,9 +169,10 @@ const AdminRoomTypes = () => {
                     formIdPrefix="create"
                     formState={createForm}
                     setFormState={setCreateForm}
-                    dropdownData={dropdownData}
                     amenitiesOptions={amenities}
                     onSubmit={handleSubmit}
+                    onImageFilesChange={setCreateImageFiles}
+                    imageFileNames={createImageFiles.map((file) => file.name)}
                 />
             </Box>
         </Collapse>
@@ -273,10 +305,10 @@ const AdminRoomTypes = () => {
                                         formIdPrefix={`edit-${rowId}`}
                                         formState={editForm}
                                         setFormState={setEditForm}
-                                        dropdownData={dropdownData}
                                         amenitiesOptions={amenities}
                                         onSubmit={() => roomType.id && handleEditSubmit(roomType.id)}
-                                        showImageField={false}
+                                        onImageFilesChange={setEditImageFiles}
+                                        imageFileNames={editImageFiles.map((file) => file.name)}
                                       />
                                     </Box>
                                 </Collapse>
