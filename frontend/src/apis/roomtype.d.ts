@@ -15,6 +15,7 @@ export type RoomTypeFormData = {
   basePrice?: string | number | null;
   maxOccupancy?: string | number | null;
   imageUrl?: string;
+  imageUrls?: string[];
   amenityIds?: string[];
   roomId?: string | number;
 };

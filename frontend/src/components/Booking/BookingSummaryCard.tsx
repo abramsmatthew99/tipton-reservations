@@ -1,4 +1,6 @@
-import { Card, CardContent, Typography, Box, Divider } from "@mui/material";
+import { Card, CardContent, Typography, Box, Divider, IconButton, MobileStepper } from "@mui/material";
+import { KeyboardArrowLeft, KeyboardArrowRight } from "@mui/icons-material";
+import { useState } from "react";
 import { formatDate } from "../../util/helper";
 import type { BookingFormState } from "../../types/booking";
 
@@ -16,6 +18,19 @@ function BookingSummaryCard({
 }: {
   bookingData: BookingFormState;
 }) {
+  const images = bookingData.roomTypeImages ||
+                 (bookingData.roomTypeImage ? [bookingData.roomTypeImage] : []);
+  const [activeStep, setActiveStep] = useState(0);
+  const maxSteps = images.length;
+
+  const handleNext = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+  };
+
+  const handleBack = () => {
+    setActiveStep((prevActiveStep) => prevActiveStep - 1);
+  };
+
   return (
     <Card>
       <CardContent>
@@ -23,20 +38,69 @@ function BookingSummaryCard({
           Booking Summary
         </Typography>
 
-        {/* Room Image */}
-        {bookingData.roomTypeImage && (
-          <Box
-            component='img'
-            src={bookingData.roomTypeImage}
-            alt={bookingData.roomTypeName}
-            sx={{
-              width: "100%",
-              height: 200,
-              objectFit: "cover",
-              borderRadius: 1,
-              mb: 2,
-            }}
-          />
+        {/* Room Images Carousel */}
+        {images.length > 0 && (
+          <Box sx={{ mb: 2, position: 'relative' }}>
+            <Box
+              component='img'
+              src={images[activeStep]}
+              alt={`${bookingData.roomTypeName} - ${activeStep + 1}`}
+              sx={{
+                width: "100%",
+                height: 200,
+                objectFit: "cover",
+                borderRadius: 1,
+              }}
+            />
+            {images.length > 1 && (
+              <>
+                <MobileStepper
+                  steps={maxSteps}
+                  position="static"
+                  activeStep={activeStep}
+                  sx={{
+                    background: 'transparent',
+                    justifyContent: 'center',
+                    mt: 1
+                  }}
+                  nextButton={
+                    <IconButton
+                      size="small"
+                      onClick={handleNext}
+                      disabled={activeStep === maxSteps - 1}
+                      sx={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        bgcolor: 'rgba(255, 255, 255, 0.8)',
+                        '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
+                      }}
+                    >
+                      <KeyboardArrowRight />
+                    </IconButton>
+                  }
+                  backButton={
+                    <IconButton
+                      size="small"
+                      onClick={handleBack}
+                      disabled={activeStep === 0}
+                      sx={{
+                        position: 'absolute',
+                        left: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        bgcolor: 'rgba(255, 255, 255, 0.8)',
+                        '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
+                      }}
+                    >
+                      <KeyboardArrowLeft />
+                    </IconButton>
+                  }
+                />
+              </>
+            )}
+          </Box>
         )}
 
         {/* Room Details */}
