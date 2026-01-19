@@ -44,7 +44,8 @@ export type BookingResponse = {
 export type BookingFormState = {
   roomTypeId: string;
   roomTypeName: string;
-  roomTypeImage?: string;
+  roomTypeImage?: string; // Backward compatibility - first image
+  roomTypeImages?: string[]; // Array of all images for carousel
   roomTypeDescription?: string;
   basePrice: number;
   checkInDate: string; // ISO date string (YYYY-MM-DD)

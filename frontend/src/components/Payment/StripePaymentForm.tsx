@@ -218,12 +218,6 @@ function StripePaymentForm({
         </Box>
       )}
 
-      {/* Test Card Info */}
-      <Alert severity='info' sx={{ fontSize: "0.875rem", mb: 2 }}>
-        <strong>Test Card:</strong> 4242 4242 4242 4242 | Exp: Any future date |
-        CVC: Any 3 digits
-      </Alert>
-
       <FormControlLabel
         control={
           <Checkbox checked={termsAccepted} onChange={handleTermsChange} />

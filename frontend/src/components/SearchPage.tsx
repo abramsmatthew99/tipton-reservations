@@ -99,6 +99,7 @@ function SearchPage() {
       roomTypeId: String(roomType.id),
       roomTypeName: roomType.name,
       roomTypeImage: imageList[0],
+      roomTypeImages: imageList,
       roomTypeDescription: roomType.description,
       basePrice: basePrice,
       checkInDate: urlCheckIn,
