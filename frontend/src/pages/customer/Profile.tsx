@@ -3,13 +3,16 @@ import { useAuth } from '../../context/AuthContext';
 import type { AlertColor } from '@mui/material';
 import {
     Box, Card, Typography, Button, Avatar, Divider, Container,
-    TextField, Alert, Snackbar, CircularProgress, Grid, Paper, Chip, Stack
+    TextField, Alert, Snackbar, CircularProgress, Grid, Paper, Chip, Stack,
+    Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SaveIcon from '@mui/icons-material/Save';
 import BadgeIcon from '@mui/icons-material/Badge';
 import StarIcon from '@mui/icons-material/Star';
+import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -23,13 +26,18 @@ export default function Profile() {
         firstName: '',
         lastName: '',
         phoneNumber: '',
-        email: user?.sub || '' 
+        email: user?.sub || '',
+        rewardsPoints: 0 // New field for points
     });
 
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState<{ type: AlertColor; text: string; open: boolean }>({
         type: 'success', text: '', open: false
     });
+
+    // State for the Redemption Popup
+    const [redeemDialog, setRedeemDialog] = useState({ open: false, code: '' });
+    const [redeemLoading, setRedeemLoading] = useState(false);
 
     useEffect(() => {
         if (user?.sub) {
@@ -42,7 +50,8 @@ export default function Profile() {
                         firstName: response.data.firstName || '',
                         lastName: response.data.lastName || '',
                         phoneNumber: response.data.phoneNumber || '',
-                        email: response.data.email 
+                        email: response.data.email,
+                        rewardsPoints: response.data.rewardsPoints || 0 // Load points from backend
                     }));
                 })
                 .catch(err => console.error("Failed to load profile", err))
@@ -61,17 +70,54 @@ export default function Profile() {
              return;
         }
         const token = localStorage.getItem('token');
-        axios.put(`${baseURL}/users/${profileData.id}`, profileData, {
+        // We exclude rewardsPoints from the PUT body to avoid accidental overwrites
+        const { rewardsPoints, ...updateData } = profileData;
+        
+        axios.put(`${baseURL}/users/${profileData.id}`, updateData, {
             headers: { 'Authorization': `Bearer ${token}` }
         })
         .then(response => {
-            setProfileData(prev => ({ ...prev, ...response.data }));
+            // Preserve points in local state, update other fields
+            setProfileData(prev => ({ ...prev, ...response.data, rewardsPoints: prev.rewardsPoints }));
             setMessage({ open: true, type: 'success', text: 'Profile updated successfully!' });
         })
         .catch(() => setMessage({ open: true, type: 'error', text: 'Failed to update profile.' }));
     };
 
+    const handleRedeemPoints = () => {
+        if (profileData.rewardsPoints < 100) return;
+        
+        setRedeemLoading(true);
+        const token = localStorage.getItem('token');
+
+        axios.post(`${baseURL}/api/rewards/redeem`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(response => {
+            // Backend returns { code: "REWARD-XYZ", remainingPoints: 50 }
+            setRedeemDialog({ open: true, code: response.data.code });
+            
+            // Update local points balance immediately
+            setProfileData(prev => ({ 
+                ...prev, 
+                rewardsPoints: response.data.remainingPoints 
+            }));
+            
+            setMessage({ open: true, type: 'success', text: 'Points redeemed successfully!' });
+        })
+        .catch(err => {
+            const errorMsg = err.response?.data?.message || 'Failed to redeem points.';
+            setMessage({ open: true, type: 'error', text: errorMsg });
+        })
+        .finally(() => setRedeemLoading(false));
+    };
+
     const handleLogout = () => { logout(); navigate('/'); };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(redeemDialog.code);
+        setMessage({ open: true, type: 'info', text: 'Code copied to clipboard!' });
+    };
 
     if (loading) {
         return <Box sx={{ display: 'flex', justifyContent: 'center', mt: 10 }}><CircularProgress /></Box>;
@@ -82,7 +128,6 @@ export default function Profile() {
             <Grid container spacing={4}>
                 
                 {/* LEFT COLUMN: IDENTITY CARD */}
-                {/* UPDATED: Removed 'item' prop, used 'size' prop for MUI v6 compatibility */}
                 <Grid size={{ xs: 12, md: 4 }}>
                     <Card sx={{ height: '100%', borderRadius: 2, position: 'relative', overflow: 'visible' }}>
                         {/* Decorative Header */}
@@ -103,12 +148,44 @@ export default function Profile() {
                             <Chip 
                                 icon={<StarIcon />} 
                                 label="Tipton Rewards Member" 
-                                color="secondary" 
+                                color="warning" 
                                 size="small" 
                                 sx={{ mt: 1, fontWeight: 600 }} 
                             />
 
                             <Divider sx={{ width: '100%', my: 3 }} />
+
+                            {/* --- NEW REWARDS SECTION --- */}
+                            <Box sx={{ width: '100%', textAlign: 'center', mb: 3 }}>
+                                <Typography variant="overline" color="text.secondary" fontWeight={700}>
+                                    Rewards Balance
+                                </Typography>
+                                <Typography variant="h3" color="primary.main" fontWeight={800}>
+                                    {profileData.rewardsPoints}
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    points available
+                                </Typography>
+
+                                <Button 
+                                    variant="contained" 
+                                    color="secondary" 
+                                    startIcon={<CardGiftcardIcon />}
+                                    fullWidth
+                                    disabled={profileData.rewardsPoints < 100 || redeemLoading}
+                                    onClick={handleRedeemPoints}
+                                >
+                                    {redeemLoading ? "Processing..." : "Redeem 100 Points ($100 Off)"}
+                                </Button>
+                                {profileData.rewardsPoints < 100 && (
+                                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                                        Earn {100 - profileData.rewardsPoints} more points to redeem a reward.
+                                    </Typography>
+                                )}
+                            </Box>
+                            {/* --------------------------- */}
+
+                            <Divider sx={{ width: '100%', mb: 3 }} />
 
                             <Stack spacing={2} width="100%">
                                 <Button variant="outlined" color="error" startIcon={<LogoutIcon />} onClick={handleLogout} fullWidth>
@@ -120,7 +197,6 @@ export default function Profile() {
                 </Grid>
 
                 {/* RIGHT COLUMN: EDIT FORM */}
-                {/* UPDATED: Removed 'item' prop, used 'size' prop */}
                 <Grid size={{ xs: 12, md: 8 }}>
                     <Paper elevation={0} sx={{ p: 4, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
                         <Box display="flex" alignItems="center" gap={2} mb={3}>
@@ -191,6 +267,50 @@ export default function Profile() {
                 </Grid>
             </Grid>
             
+            {/* SUCCESS DIALOG FOR COUPON CODE */}
+            <Dialog open={redeemDialog.open} onClose={() => setRedeemDialog({ ...redeemDialog, open: false })}>
+                <DialogTitle sx={{ textAlign: 'center', pt: 4 }}>
+                    <CardGiftcardIcon sx={{ fontSize: 60, color: 'success.main', mb: 2 }} />
+                    <br />
+                    Reward Redeemed!
+                </DialogTitle>
+                <DialogContent sx={{ textAlign: 'center', pb: 4 }}>
+                    <DialogContentText sx={{ mb: 3 }}>
+                        You've successfully traded 100 points for a $100 discount coupon.
+                        Use this code at checkout for your next booking!
+                    </DialogContentText>
+                    
+                    <Paper 
+                        elevation={0} 
+                        sx={{ 
+                            p: 2, 
+                            bgcolor: 'grey.100', 
+                            border: '1px dashed', 
+                            borderColor: 'grey.400',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 2
+                        }}
+                    >
+                        <Typography variant="h5" component="code" sx={{ fontWeight: 'bold', color: 'primary.main', letterSpacing: 1 }}>
+                            {redeemDialog.code}
+                        </Typography>
+                        <IconButton onClick={copyToClipboard} color="primary">
+                            <ContentCopyIcon />
+                        </IconButton>
+                    </Paper>
+                </DialogContent>
+                <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
+                    <Button 
+                        variant="contained" 
+                        onClick={() => setRedeemDialog({ ...redeemDialog, open: false })}
+                    >
+                        Got it, thanks!
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
             <Snackbar 
                 open={message.open} 
                 autoHideDuration={6000} 

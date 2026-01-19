@@ -52,4 +52,5 @@ export type BookingFormState = {
   numberOfGuests: number;
   numberOfNights: number; // Calculated
   totalPrice: number; // Calculated (basePrice × numberOfNights)
+  promoCode?: string
 };

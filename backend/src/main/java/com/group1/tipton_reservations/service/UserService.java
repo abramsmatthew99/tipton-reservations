@@ -55,4 +55,10 @@ public class UserService {
     public List<User> findUsersByIds(List<String> ids) {
         return userRepository.findAllById(ids);
     }
+
+    public void addRewardPoints(String userId, int points) {
+        User user = findUserById(userId); 
+        user.setRewardsPoints(user.getRewardsPoints() + points);
+        userRepository.save(user);
+    }
 }

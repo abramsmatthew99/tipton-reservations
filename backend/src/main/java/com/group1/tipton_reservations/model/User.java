@@ -49,6 +49,9 @@ public class User {
 
     private boolean isActive = true;
 
+    private int rewardsPoints = 0;
+ 
+
     @Data
     public static class ConnectedAccount {
         private String provider;   

@@ -17,6 +17,14 @@ import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.Map;
+import java.util.UUID;
+
+import com.stripe.model.Coupon;
+import com.stripe.model.PromotionCode;
+import com.stripe.param.CouponCreateParams;
+import com.stripe.param.PromotionCodeCreateParams;
+import com.stripe.param.PromotionCodeListParams;
 
 /**
  * Service for handling Stripe payment operations
@@ -156,4 +164,51 @@ public class StripeService {
         RefundCreateParams params = paramsBuilder.build();
         return Refund.create(params);
     }
+
+    /**
+     * Generates a unique $100 off Promo Code in Stripe.
+     * Used when a user redeems their points.
+     */
+    public String createRewardCoupon(String userId) throws StripeException {
+        CouponCreateParams couponParams = CouponCreateParams.builder()
+                .setAmountOff(10000L) 
+                .setCurrency("usd")
+                .setDuration(CouponCreateParams.Duration.ONCE)
+                .setName("$100 Loyalty Reward")
+                .build();
+        com.stripe.model.Coupon coupon = com.stripe.model.Coupon.create(couponParams);
+
+        String codeString = "REWARD-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        
+        PromotionCodeCreateParams promoParams = PromotionCodeCreateParams.builder()
+                .setCode(codeString)
+                .setPromotion(
+                    PromotionCodeCreateParams.Promotion.builder()
+                        .setType(PromotionCodeCreateParams.Promotion.Type.COUPON) // Tell Stripe this is a Coupon
+                        .setCoupon(coupon.getId())
+                        .build()
+                )
+                .putAllMetadata(java.util.Map.of("userId", userId))
+                .build();
+                
+        com.stripe.model.PromotionCode promo = com.stripe.model.PromotionCode.create(promoParams);
+        return promo.getCode();
+}
+
+    /**
+     * Finds a specific active Promotion Code object by the code string.
+     */
+    public PromotionCode retrieveActivePromotionCode(String code) throws StripeException {
+    PromotionCodeListParams params = PromotionCodeListParams.builder()
+            .setCode(code)
+            .setActive(true)
+            .addExpand("data.promotion.coupon") 
+            .build();
+            
+    var codes = PromotionCode.list(params).getData();
+    if (codes.isEmpty()) {
+        return null;
+    }
+    return codes.get(0);
+}
 }

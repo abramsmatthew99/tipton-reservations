@@ -37,6 +37,9 @@ import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import java.math.RoundingMode;
+import com.stripe.model.PromotionCode;
+
 
 // TODO: replace ResponseStatusException with appropriate custom exceptions + GlobalExceptionHandler
 @Service
@@ -127,6 +130,36 @@ public class BookingService {
                 request.getCheckInDate(),
                 request.getCheckOutDate()
         );
+
+        //Reward code logic
+        if (request.getPromoCode() != null && !request.getPromoCode().isBlank()) {
+            try {
+                PromotionCode promo = stripeService.retrieveActivePromotionCode(request.getPromoCode());
+                
+                if (promo != null && promo.getPromotion() != null && promo.getPromotion().getCouponObject() != null) {
+                    var coupon = promo.getPromotion().getCouponObject();
+                    
+                    if (Boolean.TRUE.equals(coupon.getValid())) {
+                        BigDecimal discountAmount = BigDecimal.ZERO;
+                        
+                        if (coupon.getAmountOff() != null) {
+                            
+                            discountAmount = BigDecimal.valueOf(coupon.getAmountOff())
+                                    .divide(new BigDecimal("100"));
+                        } 
+                        
+                        totalPrice = totalPrice.subtract(discountAmount).max(BigDecimal.ZERO);
+                        
+                        log.info("Applied promo code {} for user {}. Discount: ${}", 
+                                request.getPromoCode(), userId, discountAmount);
+                    }
+                }
+            } catch (Exception e) {
+                // Throwing error so user knows the code failed
+                log.error("Promo code error: ", e);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid or expired promo code");
+            }
+        }
 
         // create booking entity
         Booking booking = new Booking();
@@ -510,6 +543,20 @@ public class BookingService {
         // update status to confirmed and link payment
         booking.setStatus(BookingStatus.CONFIRMED);
         booking.setPaymentId(paymentIntentId);
+
+        //Added rewards calculation
+        try {
+            BigDecimal pointsEarned = booking.getTotalPrice()
+                    .divide(new BigDecimal("10"), 0, RoundingMode.FLOOR);
+            
+            userService.addRewardPoints(booking.getUserId(), pointsEarned.intValue());
+            
+            log.info("Awarded {} points to user {} for booking {}", 
+                    pointsEarned, booking.getUserId(), bookingId);
+        } catch (Exception e) {
+            //Logging so that we can see if reward points must be added to a user -- don't fail the whole transaction tho
+            log.error("Failed to award points for booking " + bookingId, e);
+        }
 
         // save updated booking
         Booking confirmedBooking = bookingRepository.save(booking);

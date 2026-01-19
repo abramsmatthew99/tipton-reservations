@@ -31,4 +31,7 @@ public class CreateBookingRequest {
     @NotNull(message = "Number of guests is required")
     @Positive(message = "Number of guests must be at least 1")
     private Integer numberOfGuests;
+
+    private String promoCode;
+    
 }

@@ -88,7 +88,8 @@ function StripePaymentForm({
         roomTypeId: bookingData.roomTypeId,
         checkInDate: bookingData.checkInDate,
         checkOutDate: bookingData.checkOutDate,
-        numberOfGuests: bookingData.numberOfGuests,
+        numberOfGuests: bookingData.numberOfGuests, 
+        promoCode: bookingData.promoCode
       };
 
       const pendingBooking = await createBooking(createReq).unwrap();
