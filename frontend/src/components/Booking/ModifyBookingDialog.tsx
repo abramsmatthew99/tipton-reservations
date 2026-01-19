@@ -213,7 +213,11 @@ function ModifyBookingDialog({
                 <DatePicker
                   label='Check-in Date'
                   value={checkInDate}
-                  onChange={(newValue) => setCheckInDate(newValue)}
+                  onChange={(newValue) => {
+                    if (newValue && dayjs.isDayjs(newValue)) {
+                      setCheckInDate(newValue);
+                    }
+                  }}
                   disablePast
                   slotProps={{
                     textField: {
@@ -229,7 +233,11 @@ function ModifyBookingDialog({
                 <DatePicker
                   label='Check-out Date'
                   value={checkOutDate}
-                  onChange={(newValue) => setCheckOutDate(newValue)}
+                  onChange={(newValue) => {
+                    if (newValue && dayjs.isDayjs(newValue)) {
+                      setCheckOutDate(newValue);
+                    }
+                  }}
                   minDate={checkInDate?.add(1, "day")}
                   disablePast
                   slotProps={{

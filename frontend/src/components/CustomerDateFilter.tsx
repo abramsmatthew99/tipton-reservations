@@ -75,7 +75,11 @@ function CustomerDateFilter({
               <DatePicker
                 label="Check-in"
                 value={localCheckIn}
-                onChange={(newValue) => setLocalCheckIn(newValue)}
+                onChange={(newValue) => {
+                  if (newValue && dayjs.isDayjs(newValue)) {
+                    setLocalCheckIn(newValue);
+                  }
+                }}
                 disablePast
                 slotProps={{
                   textField: {
@@ -92,7 +96,11 @@ function CustomerDateFilter({
               <DatePicker
                 label="Check-out"
                 value={localCheckOut}
-                onChange={(newValue) => setLocalCheckOut(newValue)}
+                onChange={(newValue) => {
+                  if (newValue && dayjs.isDayjs(newValue)) {
+                    setLocalCheckOut(newValue);
+                  }
+                }}
                 minDate={localCheckIn?.add(1, "day")}
                 disablePast
                 slotProps={{
