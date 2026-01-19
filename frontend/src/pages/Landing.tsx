@@ -68,7 +68,11 @@ export default function LandingPage() {
           </Typography>
           <Typography
             variant='h5'
-            sx={{ mb: 4, textShadow: "1px 1px 4px rgba(0,0,0,0.7)" }}
+            sx={{
+              mb: 4,
+              textShadow: "1px 1px 4px rgba(0,0,0,0.7)",
+              color: "background.default",
+            }}
           >
             No B-Ball in the lobby
           </Typography>

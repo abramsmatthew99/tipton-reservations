@@ -8,6 +8,9 @@ import {
   Typography,
   CircularProgress
 } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import CustomerRoomCard from "./CustomerRoomCard";
 import CustomerFilterComponent from "./CustomerFilterComponent";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -57,22 +60,32 @@ function SearchPage() {
   const urlGuests = searchParams.get("guests");
   const searchCriteriaValid = urlCheckIn && urlCheckOut && urlGuests;
 
-  // Local Input State
-  const [localCheckIn, setLocalCheckIn] = useState<string>(urlCheckIn || format(new Date(), 'yyyy-MM-dd'));
-  const [localCheckOut, setLocalCheckOut] = useState<string>(urlCheckOut || format(addDays(new Date(), 1), 'yyyy-MM-dd'));
+  // Helper to parse date strings as local dates (not UTC)
+  const parseLocalDate = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  // Local Input State - using Date objects for DatePicker
+  const [localCheckIn, setLocalCheckIn] = useState<Date>(
+    urlCheckIn ? parseLocalDate(urlCheckIn) : new Date()
+  );
+  const [localCheckOut, setLocalCheckOut] = useState<Date>(
+    urlCheckOut ? parseLocalDate(urlCheckOut) : addDays(new Date(), 1)
+  );
   const [localGuests, setLocalGuests] = useState<number>(urlGuests ? Number(urlGuests) : 1);
 
   useEffect(() => {
-    if (urlCheckIn) setLocalCheckIn(urlCheckIn);
-    if (urlCheckOut) setLocalCheckOut(urlCheckOut);
+    if (urlCheckIn) setLocalCheckIn(parseLocalDate(urlCheckIn));
+    if (urlCheckOut) setLocalCheckOut(parseLocalDate(urlCheckOut));
     if (urlGuests) setLocalGuests(Number(urlGuests));
   }, [urlCheckIn, urlCheckOut, urlGuests]);
 
   // --- HANDLERS ---
   const handleSearchClick = () => {
     setSearchParams({
-      checkInDate: localCheckIn,
-      checkOutDate: localCheckOut,
+      checkInDate: format(localCheckIn, 'yyyy-MM-dd'),
+      checkOutDate: format(localCheckOut, 'yyyy-MM-dd'),
       guests: String(localGuests),
     });
   };
@@ -210,22 +223,33 @@ function SearchPage() {
               <SearchIcon fontSize="small" color="primary" /> Search
             </Typography>
             <Stack spacing={2} mt={2}>
-              <TextField
-                label="Check-in"
-                type="date"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                value={localCheckIn}
-                onChange={(e) => setLocalCheckIn(e.target.value)}
-              />
-              <TextField
-                label="Check-out"
-                type="date"
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                value={localCheckOut}
-                onChange={(e) => setLocalCheckOut(e.target.value)}
-              />
+              <LocalizationProvider dateAdapter={AdapterDateFns}>
+                <DatePicker
+                  label="Check-in"
+                  value={localCheckIn}
+                  onChange={(newValue) => {
+                    if (newValue instanceof Date) setLocalCheckIn(newValue);
+                  }}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                    }
+                  }}
+                />
+                <DatePicker
+                  label="Check-out"
+                  value={localCheckOut}
+                  onChange={(newValue) => {
+                    if (newValue instanceof Date) setLocalCheckOut(newValue);
+                  }}
+                  minDate={addDays(localCheckIn, 1)}
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                    }
+                  }}
+                />
+              </LocalizationProvider>
               <TextField
                 label="Guests"
                 type="number"
