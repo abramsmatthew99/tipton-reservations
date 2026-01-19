@@ -1,15 +1,18 @@
+import { useEffect, useState } from "react";
 import {
   Card,
-  CardMedia,
   CardContent,
   Typography,
   Box,
   Chip,
   Button,
   Stack,
+  IconButton,
 } from "@mui/material";
 import * as MuiIcons from "@mui/icons-material";
 import { Person } from "@mui/icons-material";
+import ArrowBackIosNewIcon from "@mui/icons-material/ArrowBackIosNew";
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { resolveAmenityIconName } from "../utils/amenityIcons";
 
 type RoomProps = {
@@ -17,7 +20,7 @@ type RoomProps = {
   name: string;
   basePrice: string | number;
   maxOccupancy: string | number;
-  imageUrls?: string;
+  imageUrls?: string[];
   description: string;
   amenities: Array<{
     id: string | number;
@@ -37,6 +40,17 @@ function CustomerRoomCard({
   amenities = [],
   onBookNow,
 }: RoomProps) {
+  const images = imageUrls ?? [];
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (images.length === 0) {
+      setCurrentImageIndex(0);
+      return;
+    }
+    setCurrentImageIndex((prev) => Math.min(prev, images.length - 1));
+  }, [images.length]);
+
   return (
     <Card
       sx={{
@@ -47,13 +61,90 @@ function CustomerRoomCard({
         bgcolor: 'background.paper'
       }}
     >
-      <CardMedia
-        component="img"
-        height="200"
-        image={imageUrls || undefined}
-        alt={name}
-        sx={{ objectFit: "cover" }}
-      />
+      <Box sx={{ position: "relative", height: 200, bgcolor: "grey.100" }}>
+        {images.length > 0 ? (
+          <Box
+            component="img"
+            src={images[currentImageIndex]}
+            alt={`${name} image ${currentImageIndex + 1}`}
+            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+          />
+        ) : (
+          <Box
+            sx={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "text.secondary",
+              fontSize: 14,
+            }}
+          >
+            No image available
+          </Box>
+        )}
+
+        {images.length > 1 && (
+          <>
+            <IconButton
+              size="small"
+              onClick={() =>
+                setCurrentImageIndex((prev) =>
+                  prev === 0 ? images.length - 1 : prev - 1
+                )
+              }
+              sx={{
+                position: "absolute",
+                top: "50%",
+                left: 8,
+                transform: "translateY(-50%)",
+                bgcolor: "rgba(0, 0, 0, 0.45)",
+                color: "white",
+                "&:hover": { bgcolor: "rgba(0, 0, 0, 0.6)" },
+              }}
+              aria-label="Previous image"
+            >
+              <ArrowBackIosNewIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={() =>
+                setCurrentImageIndex((prev) =>
+                  prev === images.length - 1 ? 0 : prev + 1
+                )
+              }
+              sx={{
+                position: "absolute",
+                top: "50%",
+                right: 8,
+                transform: "translateY(-50%)",
+                bgcolor: "rgba(0, 0, 0, 0.45)",
+                color: "white",
+                "&:hover": { bgcolor: "rgba(0, 0, 0, 0.6)" },
+              }}
+              aria-label="Next image"
+            >
+              <ArrowForwardIosIcon fontSize="small" />
+            </IconButton>
+            <Box
+              sx={{
+                position: "absolute",
+                bottom: 8,
+                right: 8,
+                px: 1,
+                py: 0.25,
+                borderRadius: 1,
+                bgcolor: "rgba(0, 0, 0, 0.55)",
+                color: "white",
+                fontSize: 12,
+              }}
+            >
+              {currentImageIndex + 1} / {images.length}
+            </Box>
+          </>
+        )}
+      </Box>
 
       <CardContent sx={{ p: 3 }}>
         <Box

@@ -288,7 +288,7 @@ function SearchPage() {
                     name={roomType.name}
                     basePrice={roomType.basePrice ?? "0"}
                     maxOccupancy={roomType.maxOccupancy ?? 1}
-                    imageUrls={imageList[0] ?? undefined}
+                    imageUrls={imageList}
                     description={roomType.description ?? ""}
                     amenities={roomType?.amenities ?? []}
                     onBookNow={searchCriteriaValid ? () => handleBookNow(roomType) : undefined}
