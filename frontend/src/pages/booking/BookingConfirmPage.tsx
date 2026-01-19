@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Container,
@@ -24,10 +24,14 @@ import GuestInfoCard from "../../components/Booking/GuestInfoCard";
 import StripePaymentForm from "../../components/Payment/StripePaymentForm";
 import { stripePromise } from "../../config/stripe";
 import { useConfirmBookingMutation } from "../../store/api/bookingApi";
+import { sendBookingConfirmationEmail } from "../../services/emailService";
+import { formatDate } from "../../util/helper";
+import { useAuth } from "../../context/AuthContext";
 import axios from 'axios';
 
 /**
  * Booking Confirmation Page
+ *
  * Displays booking summary, allows promo code application, and collects payment.
  */
 function BookingConfirmPage() {
@@ -40,21 +44,65 @@ function BookingConfirmPage() {
 
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  // --- PROMO CODE STATE ---
+  const searchParams = location.state?.searchParams as string | undefined;
+  const searchQuery = searchParams ? `?${searchParams}` : "";
+
+  // Promo Code State
   const [promoCode, setPromoCode] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
   const [promoMessage, setPromoMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [validatingPromo, setValidatingPromo] = useState(false);
-  // ------------------------
 
-  const searchParams = location.state?.searchParams as string | undefined;
-  const searchQuery = searchParams ? `?${searchParams}` : "";
+  // Profile State
+  const { user } = useAuth();
+  const [profileData, setProfileData] = useState<{
+    id?: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+  } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [isProfileIncomplete, setIsProfileIncomplete] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
 
   // RTK Query mutation
   const [confirmBooking] = useConfirmBookingMutation();
 
-  // --- HANDLE PROMO CODE ---
+  // Fetch user profile data on page load
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user?.sub) {
+        setProfileLoading(false);
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get(`${baseURL}/users/email/${user.sub}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        const profile = {
+          id: response.data.id,
+          firstName: response.data.firstName || "",
+          lastName: response.data.lastName || "",
+          email: response.data.email,
+          phoneNumber: response.data.phoneNumber || "",
+        };
+
+        setProfileData(profile);
+        setIsProfileIncomplete(!profile.firstName || !profile.lastName);
+      } catch (err) {
+        console.error("Failed to load user profile:", err);
+      } finally {
+        setProfileLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user?.sub, baseURL]);
+
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
     setValidatingPromo(true);
@@ -80,8 +128,16 @@ function BookingConfirmPage() {
       setValidatingPromo(false);
     }
   };
-  // -------------------------
 
+  // Handle profile updates from GuestInfoCard
+  const handleProfileUpdate = (updatedProfile: typeof profileData) => {
+    setProfileData(updatedProfile);
+    if (updatedProfile) {
+      setIsProfileIncomplete(!updatedProfile.firstName || !updatedProfile.lastName);
+    }
+  };
+
+  // Handle successful payment: confirm the pending booking
   const handlePaymentSuccess = async (paymentIntentId: string, bookingId: string) => {
     if (!originalBookingData) {
       setBookingError("No booking data found.");
@@ -90,11 +146,32 @@ function BookingConfirmPage() {
     setIsProcessing(true);
 
     try {
+      // Confirm the PENDING booking using bookingId returned from payment flow
       const confirmedBooking = await confirmBooking({
         id: bookingId,
         paymentIntentId,
       }).unwrap();
 
+      // Send confirmation email (async, won't block navigation)
+      if (profileData?.email) {
+        const guestName = profileData.firstName && profileData.lastName
+          ? `${profileData.firstName} ${profileData.lastName}`
+          : 'Guest';
+
+        sendBookingConfirmationEmail({
+          guestEmail: profileData.email,
+          guestName,
+          confirmationNumber: confirmedBooking.confirmationNumber,
+          checkInDate: formatDate(confirmedBooking.checkInDate),
+          checkOutDate: formatDate(confirmedBooking.checkOutDate),
+          roomType: confirmedBooking.roomTypeName,
+          roomNumber: confirmedBooking.roomNumber,
+          numGuests: confirmedBooking.numberOfGuests,
+          totalPrice: parseFloat(confirmedBooking.totalPrice).toFixed(2),
+        }).catch(err => console.error('Email sending failed:', err));
+      }
+
+      // Navigate to confirmation page with booking details
       navigate(`/booking/confirmation/${confirmedBooking.confirmationNumber}`, {
         state: {
           bookingData: originalBookingData,
@@ -109,6 +186,12 @@ function BookingConfirmPage() {
     }
   };
 
+  // Handle payment error
+  const handlePaymentError = (error: string) => {
+    console.error("Payment failed:", error);
+  };
+
+  // Show error if no booking data was passed
   if (!originalBookingData) {
     return (
       <Container maxWidth='lg' sx={{ py: 4 }}>
@@ -117,16 +200,13 @@ function BookingConfirmPage() {
     );
   }
 
-  // Calculate final price dynamically
   const discountAmount = appliedPromo ? appliedPromo.discount : 0;
-  // Ensure price doesn't drop below 0
   const finalPrice = Math.max(0, originalBookingData.totalPrice - discountAmount);
 
-  // Merge promo code into booking data so it gets passed to StripeForm
   const finalBookingData = {
     ...originalBookingData,
     totalPrice: finalPrice,
-    promoCode: appliedPromo?.code // Pass this to backend!
+    promoCode: appliedPromo?.code
   };
 
   return (
@@ -141,20 +221,25 @@ function BookingConfirmPage() {
       {bookingError && <Alert severity='error' sx={{ mb: 3 }}>{bookingError}</Alert>}
 
       <Grid container spacing={3}>
-        {/* Left Column: Summary */}
+        {/* Left Column: Booking Summary */}
         <Grid size={{ xs: 12, md: 7 }}>
           <BookingSummaryCard bookingData={originalBookingData} />
         </Grid>
 
-        {/* Right Column: Payment & Promo */}
+        {/* Right Column: Guest Info & Payment */}
         <Grid size={{ xs: 12, md: 5 }}>
-          <GuestInfoCard />
+          {/* Guest Information */}
+          <GuestInfoCard
+            profileData={profileData}
+            loading={profileLoading}
+            onProfileUpdate={handleProfileUpdate}
+            onEditingChange={setIsEditingProfile}
+          />
 
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant='h6' gutterBottom>Payment Details</Typography>
               
-              {/* --- PROMO CODE INPUT --- */}
               <Box sx={{ mb: 3, mt: 1 }}>
                  <Stack direction="row" spacing={1}>
                     <TextField 
@@ -183,7 +268,6 @@ function BookingConfirmPage() {
                     </Button>
                  </Stack>
                  
-                 {/* Success/Error Message */}
                  {promoMessage && (
                     <Typography 
                         variant="caption" 
@@ -198,7 +282,6 @@ function BookingConfirmPage() {
               
               <Divider sx={{ mb: 2 }} />
 
-              {/* Price Breakdown */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography color="text.secondary">Subtotal</Typography>
                   <Typography>${originalBookingData.totalPrice.toFixed(2)}</Typography>
@@ -218,14 +301,23 @@ function BookingConfirmPage() {
                   </Typography>
               </Box>
 
+              {/* Warning if profile is incomplete or being edited */}
+              {(isProfileIncomplete || isEditingProfile) && (
+                <Alert severity='warning' sx={{ mb: 2 }}>
+                  {isEditingProfile
+                    ? "Please save your guest information before proceeding with payment."
+                    : "Please complete your guest information above before proceeding with payment."}
+                </Alert>
+              )}
+
               {/* Stripe Payment Form */}
               <Elements stripe={stripePromise}>
                 <StripePaymentForm
-                  amount={finalPrice} // Pass the NEW discounted price
-                  bookingData={finalBookingData} // Includes promoCode
+                  amount={finalPrice}
+                  bookingData={finalBookingData}
                   onSuccess={handlePaymentSuccess}
-                  onError={() => {}}
-                  disabled={isProcessing}
+                  onError={handlePaymentError}
+                  disabled={isProcessing || isProfileIncomplete || isEditingProfile}
                 />
               </Elements>
 
@@ -233,7 +325,7 @@ function BookingConfirmPage() {
                 <Box sx={{ textAlign: "center", mt: 2 }}>
                   <CircularProgress size={24} />
                   <Typography variant='body2' sx={{ mt: 1 }}>
-                    Processing payment...
+                    Creating and confirming your booking...
                   </Typography>
                 </Box>
               )}

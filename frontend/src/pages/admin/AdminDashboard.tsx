@@ -35,12 +35,10 @@ import LogoutIcon from "@mui/icons-material/Logout";
 
 // APIs & Types
 import { getThisMonthsRevenue } from "../../apis/stripe";
-import { cancelBooking, getBookings } from "../../apis/booking";
+import { getBookings } from "../../apis/booking";
 import { getRooms } from "../../apis/room";
-import { getUsers } from "../../apis/users";
-import { getRoomTypes } from "../../apis/roomtype";
 
-import type { BookingResponse } from "../../types/booking";
+import type { BookingResponse, BookingStatus } from "../../types/booking";
 import { countBookingsInProgress } from "../../util/helper";
 
 // --- Sub-Components ---
@@ -115,7 +113,7 @@ const StatusChip = ({ status }: { status: BookingStatus }) => {
       label={config.label}
       color={config.color}
       size="small"
-      variant="soft"
+      variant="outlined"
       sx={{ fontWeight: 600, borderRadius: 1 }}
     />
   );
@@ -220,11 +218,9 @@ const AdminDashboard = () => {
   // Dashboard State
   const [monthRevenue, setMonthRevenue] = useState<string>("0.00");
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
-  const [users, setUsers] = useState<UserSummary[] | undefined>(undefined);
   const [totalRooms, setTotalRooms] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [roomTypes, setRoomTypes] = useState<RoomTypeSummary[]>([]);
 
   // Fetch initial dashboard metrics
   useEffect(() => {
@@ -238,8 +234,8 @@ const AdminDashboard = () => {
         ]);
         if (mounted) {
           setMonthRevenue(String(rev));
-          setBookings(Array.isArray(bks) ? bks : bks?.content ?? []);
-          setTotalRooms((Array.isArray(rms) ? rms : rms?.content ?? []).length);
+          setBookings(Array.isArray(bks) ? bks : []);
+          setTotalRooms((Array.isArray(rms) ? rms : []).length);
           setIsLoading(false);
         }
       } catch (err) {
@@ -285,7 +281,7 @@ const AdminDashboard = () => {
       ) : (
         <Grid container spacing={3}>
           {/* Left Column: Recent Bookings Table */}
-          <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
+          <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
             <Card
               elevation={0}
               sx={{
@@ -357,7 +353,7 @@ const AdminDashboard = () => {
                         <TableCell>
                           <StatusChip status={b.status} />
                         </TableCell>
-                        <TableCell align="right" fontWeight={600}>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>
                           {formatRevenue(b.totalPrice)}
                         </TableCell>
                       </TableRow>
@@ -369,31 +365,31 @@ const AdminDashboard = () => {
           </Grid>
 
           {/* Right Column: KPIs and Operational Widgets */}
-          <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
+          <Grid size={{ xs: 12, md: 6 }} sx={{ minWidth: 0 }}>
             <Stack spacing={3}>
               {/* KPI Grid */}
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <StatCard
                     label="Revenue (Mo)"
                     value={formatRevenue(monthRevenue)}
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <StatCard
                     label="Occupancy"
                     value={`${occupancy}%`}
                     helper={`${active} / ${totalRooms} occupied`}
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <StatCard
                     label="Active Bookings"
                     value={String(confirmed.length)}
                     helper="Future arrivals"
                   />
                 </Grid>
-                <Grid item xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <StatCard
                     label="Total Rooms"
                     value={String(totalRooms)}

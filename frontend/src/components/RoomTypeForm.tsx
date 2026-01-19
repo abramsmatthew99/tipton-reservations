@@ -5,6 +5,7 @@ import {
   Button,
   Chip,
   FormControl,
+  IconButton,
   InputLabel,
   MenuItem,
   Select,
@@ -22,12 +23,8 @@ type RoomTypeFormState = {
   description: string;
   basePrice: string;
   maxOccupancy: string;
-  imageUrl: string;
+  imageUrls: string[];
   amenityIds?: string[];
-};
-
-type DropdownData = {
-  imageOptions: Array<{ id: string; url: string }>;
 };
 
 type AmenityOption = {
@@ -43,10 +40,11 @@ type RoomTypeFormProps = {
   formIdPrefix: string;
   formState: RoomTypeFormState;
   setFormState: (nextState: RoomTypeFormState) => void;
-  dropdownData: DropdownData;
   amenitiesOptions?: AmenityOption[];
   onSubmit: () => void;
-  showImageField?: boolean;
+  showImageUpload?: boolean;
+  imageFileNames?: string[];
+  onImageFilesChange?: (files: File[]) => void;
 };
 
 function RoomTypeForm({
@@ -55,10 +53,11 @@ function RoomTypeForm({
   formIdPrefix,
   formState,
   setFormState,
-  dropdownData,
   amenitiesOptions,
   onSubmit,
-  showImageField = true,
+  showImageUpload = true,
+  imageFileNames,
+  onImageFilesChange,
 }: RoomTypeFormProps) {
   const [amenitySelectValue, setAmenitySelectValue] = useState("");
   const selectedAmenityIds = formState.amenityIds ?? [];
@@ -137,30 +136,79 @@ function RoomTypeForm({
           </FormControl>
         </Stack>
 
-        {showImageField && (
-          <FormControl fullWidth>
-            <InputLabel id={`${formIdPrefix}-image-url-label`}>
-              Image Url
-            </InputLabel>
-            <Select
-              id={`${formIdPrefix}-image-url`}
-              labelId={`${formIdPrefix}-image-url-label`}
-              label="Image Url"
-              value={formState.imageUrl}
-              onChange={(event) =>
-                setFormState({
-                  ...formState,
-                  imageUrl: String(event.target.value),
-                })
-              }
-            >
-              {dropdownData.imageOptions.map((option) => (
-                <MenuItem key={option.id} value={option.url}>
-                  {option.url}
-                </MenuItem>
+        {showImageUpload && (
+          <Stack spacing={1}>
+            <Button variant="outlined" component="label">
+              Upload Images
+              <input
+                type="file"
+                hidden
+                accept="image/*"
+                multiple
+                onChange={(event) => {
+                  const files = event.target.files
+                    ? Array.from(event.target.files)
+                    : [];
+                  onImageFilesChange?.(files);
+                }}
+              />
+            </Button>
+            {imageFileNames && imageFileNames.length > 0 && (
+              <Typography variant="caption" color="text.secondary">
+                {imageFileNames.join(", ")}
+              </Typography>
+            )}
+          </Stack>
+        )}
+
+        {formState.imageUrls.length > 0 && (
+          <Stack spacing={1}>
+            <Typography variant="subtitle2">Current Images</Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              {formState.imageUrls.map((url, index) => (
+                <Box
+                  key={`${url}-${index}`}
+                  sx={{
+                    position: "relative",
+                    width: 120,
+                    height: 80,
+                    borderRadius: 1,
+                    overflow: "hidden",
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={url}
+                    alt={`Room image ${index + 1}`}
+                    sx={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() =>
+                      setFormState({
+                        ...formState,
+                        imageUrls: formState.imageUrls.filter(
+                          (_, idx) => idx !== index
+                        ),
+                      })
+                    }
+                    sx={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      bgcolor: "rgba(0, 0, 0, 0.6)",
+                      color: "white",
+                      "&:hover": { bgcolor: "rgba(0, 0, 0, 0.75)" },
+                    }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Box>
               ))}
-            </Select>
-          </FormControl>
+            </Stack>
+          </Stack>
         )}
 
         {amenitiesOptions && amenitiesOptions.length > 0 && (

@@ -25,7 +25,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     @Autowired
     private UserRepository userRepository;
 
-    @Value("${app.frontend.url:http://localhost:5173}") 
+    @Value("${tipton.app.frontend.url:http://localhost:5173}") 
     private String frontendUrl;
 
     @Override

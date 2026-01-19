@@ -1,4 +1,4 @@
-import { Box, Container, Tab, Tabs, Typography, Paper, useTheme } from "@mui/material";
+import { Box, Container, Tab, Tabs, Typography } from "@mui/material";
 import { NavLink, useLocation } from "react-router-dom";
 import AdminRooms from "./AdminRooms";
 import AdminRoomTypes from "./AdminRoomTypes";
@@ -7,7 +7,6 @@ import CategoryIcon from '@mui/icons-material/Category';
 
 const AdminRoomManagement = () => {
   const location = useLocation();
-  const theme = useTheme();
   
   const tabs = [
     { label: "Room Inventory", value: "/admin/rooms", icon: <BedroomParentIcon fontSize="small"/> },
